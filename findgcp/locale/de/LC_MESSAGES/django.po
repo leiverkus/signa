@@ -17,7 +17,7 @@ msgstr "Find-GCP — ArUco-GCP-Erkennung"
 
 #: templates/app.html (blocktrans)
 msgid "Drop drone images and a GCP coordinate file, run automatic ArUco detection, and download an ODM-compatible <code>gcp_list.txt</code>. A scratch task is created on the server for the detection and deleted again afterwards — nothing is processed."
-msgstr "Drohnenbilder und eine GCP-Koordinatendatei ablegen, automatische ArUco-Erkennung starten und eine ODM-kompatible <code>gcp_list.txt</code> herunterladen. Für die Erkennung wird auf dem Server eine temporäre Task angelegt und anschließend wieder gelöscht — es wird nichts prozessiert."
+msgstr "Drohnenbilder und eine GCP-Koordinatendatei ablegen, automatische ArUco-Erkennung starten und eine ODM-kompatible <code>gcp_list.txt</code> herunterladen. Für die Erkennung wird auf dem Server ein temporärer Task angelegt und anschließend wieder gelöscht — es wird nichts prozessiert."
 
 #: templates/app.html
 msgid "To detect and georeference in one processing run instead, use the"
@@ -177,7 +177,7 @@ msgstr "Koordinatendatei kann nicht gelesen werden."
 
 #: api.py
 msgid "This task has no images."
-msgstr "Diese Task hat keine Bilder."
+msgstr "Dieser Task hat keine Bilder."
 
 #: api.py
 msgid "Result not found."

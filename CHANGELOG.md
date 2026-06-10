@@ -9,6 +9,13 @@ and behaviour may change between minor releases.
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-06-10
+
+### Fixed
+- German grammatical gender for "Task" (masculine "der Task"): the dialog title
+  is now "Neuer Task mit Find-GCP", and "Dieser Task hat keine Bilder." /
+  "ein temporärer Task" in the catalog.
+
 ## [0.6.2] - 2026-06-10
 
 ### Fixed

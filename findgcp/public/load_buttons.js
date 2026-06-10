@@ -72,7 +72,7 @@
     // Language: Django's language cookie if set, else the browser language.
     var MESSAGES = {
         de: {
-            "New task with Find-GCP": "Neue Task mit Find-GCP",
+            "New task with Find-GCP": "Neuer Task mit Find-GCP",
             "Task name": "Task-Name",
             "(optional)": "(optional)",
             "Images": "Bilder",
