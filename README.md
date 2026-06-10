@@ -131,6 +131,11 @@ python -m pytest tests/ -q
   — it takes `detect_gcps` *by source*, compiles it in an empty namespace and
   calls it — so a regression to module-level helpers (which would raise
   `NameError` only in the live worker) fails in CI instead.
+- **API tests** (`test_api.py`) cover the view security/binding/error logic
+  (`change_project` enforcement, run-binding + pruning, the status endpoint's
+  permission re-check and ownership checks, celery error/not-ready/success
+  branches). The WebODM/DRF surface is faked, so real guardian/DRF integration
+  is still confirmed only by the manual checklist.
 - **Integration test** (`test_integration_opencv.py`) renders real ArUco markers
   and runs detection end to end; it is skipped automatically if `cv2` is absent
   (CI installs it). It uses the fixture generator

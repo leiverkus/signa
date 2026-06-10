@@ -31,10 +31,10 @@ issues; not yet verified against a live WebODM instance.
   empty namespace (`app/plugins/worker.py` → `eval_async`). `detect_gcps` is now
   fully self-contained — all helpers, constants and imports live inside the
   function body.
-- **Dependency documentation**: corrected the false claim that WebODM installs
-  `requirements.txt` for the worker. The per-plugin site-packages path is only
-  on `sys.path` during web-side calls, so `opencv-contrib-python` and `numpy`
-  must be present in the **worker image**. Documented with a Dockerfile snippet.
+- **Dependency documentation**: clarified that detection runs in the Celery
+  worker, so `opencv-contrib-python` must be present in the **worker image**
+  (a web-side plugin install would not reach it). Documented with a Dockerfile
+  snippet; the plugin ships no `requirements.txt` (see Changed).
 - **Anonymous compute**: the detect endpoint now requires authentication and
   `change_project` permission, enforced even for public tasks (WebODM's default
   task views are `AllowAny` and bypass permission checks for public tasks).
@@ -67,6 +67,12 @@ issues; not yet verified against a live WebODM instance.
   actual ArUco markers and runs detection end to end (skipped when `cv2` is
   absent; CI installs it). Backed by a synthetic-fixture generator
   (`tests/fixtures/make_aruco_fixture.py`).
+- API unit tests (`test_api.py`, 14 cases) for the security/binding/error logic:
+  `change_project` enforcement on detect, run-binding storage and pruning, the
+  status endpoint's permission re-check, ownership checks, and the celery
+  error/not-ready/clean-error/success branches. The WebODM/DRF surface is faked
+  (`conftest_webodm_fakes.py`); real guardian/DRF integration is still covered
+  only by the manual checklist.
 - `docs/manual-test.md`: a live-WebODM end-to-end checklist (loader, worker
   `cv2`, permissions, warnings UI) built around the synthetic fixture.
 
@@ -80,9 +86,8 @@ issues; not yet verified against a live WebODM instance.
   `docker/` image instead.
 - Reproducible Docker build: `worker.Dockerfile` defaults `WEBODM_VERSION` to a
   concrete tag (`3.2.4`, override to match your install) instead of `latest`,
-  and pins `opencv-contrib-python-headless==4.10.0.84`. `requirements.txt`
-  pinned to the same OpenCV version. Removed the obsolete `version:` key from
-  `docker-compose.findgcp.yml`.
+  and pins `opencv-contrib-python-headless==4.10.0.84`. Removed the obsolete
+  `version:` key from `docker-compose.findgcp.yml`.
 - Pinned `ludeeus/action-shellcheck@2.0.0` (was `@master`).
 - CI now runs the unit tests in addition to shellcheck, compile-check and the
   test build.
