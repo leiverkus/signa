@@ -18,7 +18,10 @@ and behaviour may change between minor releases.
   required. It creates a scratch task on the server for the detection and
   deletes it again afterwards (nothing is processed). The previous page (pick an
   existing task → detect) is superseded by this and by the dashboard button.
-  Reuses the existing detect/check endpoints; no new server code.
+  Reuses the existing detect/check endpoints; no new server code. Live-verified
+  on WebODM 3.2.4: dropped the 6 fixture images, detected 24 GCP entries, and the
+  downloaded `gcp_list.txt` matched the fixture exactly; the scratch project was
+  marked for deletion afterwards.
 
 ## [0.3.0] - 2026-06-10
 
