@@ -90,37 +90,45 @@ worker with `cv2`). We keep both and document when to use which.
 Deliverable: `scripts/findgcp-singlepass.py` (+ `--help`, no third-party deps
 beyond the stdlib + `requests` if acceptable, else `urllib`).
 
-## Deliverable 2 — UI button (task-creation dialog)
+## Deliverable 2 — UI button
 
-Hook: `PluginsAPI.Dashboard.addNewTaskPanelItem` (verified in
-`app/static/app/js/components/NewTaskPanel.jsx`). The panel item is rendered in
-the new-task form and receives props `taskInfo`, `getFiles`, `filesCount`.
+### Why NOT the inline panel item (`addNewTaskPanelItem`)
+The original plan was a button **inside** the create dialog that detects on the
+already-uploaded images. Reading the frontend (`ProjectListItem.jsx`) showed this
+premise is **false**: the dropzone uses `autoProcessQueue: false` and only
+`handleTaskSaved` (the "Start Processing" click) creates the partial task
+(`POST partial:true`), sets `_taskInfo.id`, and starts the upload — then commits.
+So when the panel item is on screen, **no task exists and nothing is uploaded**;
+the panel item only has the browser `File` objects via `getFiles()`. An inline
+button would therefore need either client-side ArUco detection (a second,
+inconsistent detector) or to inject the GCP into the dropzone queue (fragile).
 
-Component:
-- A "Detect GCPs (ArUco)" button + a file input for the coordinate file +
-  the detection params (collapsible, defaults preset).
-- On click: resolve the partial task id → call detect → poll → upload
-  `gcp_list.txt` to the task → show the summary. The user then clicks
-  "Start Processing" (commit) as usual.
+### Chosen hook: `addNewTaskButton`
+`PluginsAPI.Dashboard.addNewTaskButton` (rendered in `ProjectListItem.jsx`,
+line ~399) lets a plugin add its **own** new-task entry point next to "Select
+Images and GCP", receiving `{projectId, onNewTaskAdded}`. This is clean: our
+button owns the whole flow and reuses the **verified** single-pass sequence
+(the exact `findgcp-singlepass.py` logic, in the browser via `fetch`):
 
-This requires `build_jsx_components` in the plugin (webpack build runs in
-`build_plugins`), so the plugin gains a `public/` JSX entry and a build step.
+1. Our button opens a dialog: image picker + coordinate file + detection params.
+2. `create(partial)` → `upload(images)` → `detect` (plugin) → poll →
+   `upload(gcp_list)` → `commit` — same-origin, so the session cookie is present
+   and we send `X-CSRFToken` from the cookie (no JWT/CSRF issue).
+3. Call `onNewTaskAdded()` to refresh the task list.
 
-### Key risk — obtaining the partial task id
-The panel-item props do **not** include the partial task id. It lives in the
-dropzone of the surrounding `ProjectListItem` (`this.dz._taskInfo.id`), which is
-a WebODM internal, not part of the plugin contract. Candidate strategies, to be
-decided after the live check:
-- **(a)** Read it via the WebODM frontend (e.g. a documented event, a global, or
-  walking from `getFiles`'s bound dropzone). Cleanest if a stable accessor
-  exists; otherwise version-fragile.
-- **(b)** Fallback: the button creates its **own** partial task and uploads the
-  selected `getFiles()` to it for detection. Avoids the internal coupling but
-  **double-uploads** the images. Acceptable only for small sets.
+No partial-task-id coupling (we create and own the task), no client-side
+detection, single processing pass. The cost: a separate button rather than an
+in-panel control, plus a `build_jsx_components` webpack build in the plugin
+(`public/` JSX entry + `main.js` registering via the hook, like
+`coreplugins/contours/public/main.js`).
 
-We verify (a) on the live instance before committing to the UI build. If no
-stable accessor exists, we ship the scriptable path as the supported single-pass
-and keep the button experimental.
+Bonus: bridging from `gcp_check`/QA is unnecessary — this button IS the
+single-pass entry point.
+
+### Open question #2 — RESOLVED
+The "how does a panel item get the partial task id" risk is moot: we no longer
+use the panel item. `addNewTaskButton` hands us `projectId` and we create the
+task ourselves.
 
 ## Open questions
 
@@ -134,9 +142,13 @@ and keep the button experimental.
 3. **RESOLVED — yes.** `/upload/` accepts a single non-image `.txt` after the
    images (`flatten_files` + `handle_images_upload`); no need to batch it with the
    images.
-2. Can a panel item obtain the partial task id without fragile coupling? (Drives
-   the UI feasibility — still open, for Phase 3.)
-4. Commit retry / timing semantics when injecting a step before commit. (Phase 3.)
+2. **RESOLVED — moot.** Reading `ProjectListItem.jsx` showed the partial task is
+   created only at "Start Processing", so an inline panel item has no task to act
+   on. Deliverable 2 switched to `addNewTaskButton`, where we create and own the
+   task — no partial-task-id coupling needed. (See Deliverable 2.)
+4. Commit retry / timing — the button reuses the verified
+   create→upload→detect→upload→commit sequence; no step is injected before an
+   existing commit, so the dropzone's auto-commit timing is not involved.
 
 ### Auth note (learned during the live run)
 The Find-GCP plugin API is dispatched by WebODM's `api_view_handler`, a plain
