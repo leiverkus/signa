@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- CI: resolved two `shellcheck` findings in `standalone/findgcp-webodm.sh`
+  (SC2206 intentional-glob directive, SC2015 `&&`/`||` rewritten as if-then-else).
+  Lint-only; the helper script is not part of the plugin zip, so the published
+  `1.1.2` artifact is unchanged.
+
 ## [1.1.2] - 2026-06-11
 
 Robustness fixes from a second code review. The version bump also re-busts the

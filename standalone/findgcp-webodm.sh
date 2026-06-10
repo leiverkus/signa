@@ -152,8 +152,11 @@ log "Minrate:   $MINRATE"
 log "Ignore:    $IGNORE"
 log "Output:    $GCP_LIST"
 
-# Count images
+# Count images. IMAGE_PATTERN is a single glob (e.g. *.JPG, or a -p override);
+# the unquoted expansion is the intended glob into array elements, not an
+# accidental word-split.
 shopt -s nullglob nocaseglob
+# shellcheck disable=SC2206
 IMG_FILES=("$IMAGES"/$IMAGE_PATTERN)
 shopt -u nullglob nocaseglob
 IMG_COUNT=${#IMG_FILES[@]}
@@ -224,8 +227,11 @@ log "GCP list:      $GCP_LIST"
 # ---------- 3. Optional: GUI check ----------
 if [[ "$DO_CHECK" == "true" ]]; then
   log "=== Visual check (gcp_check.py) ==="
-  [[ ! -f "$GCP_CHECK" ]] && warn "gcp_check.py not found, skipping" || \
+  if [[ ! -f "$GCP_CHECK" ]]; then
+    warn "gcp_check.py not found, skipping"
+  else
     python3 "$GCP_CHECK" --path "$IMAGES" "$GCP_LIST"
+  fi
 fi
 
 # ---------- 4. Optional: WebODM prep ----------
