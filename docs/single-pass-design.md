@@ -172,8 +172,16 @@ logs in via `/login/` and sends the CSRF header on every unsafe request.
 
 ## Milestones
 
-1. **This document** + live verification of open questions 1–3.
-2. **Scriptable path** (`scripts/findgcp-singlepass.py`) + live run on the fixture.
-3. **UI button** (panel item + JSX build) + live run, if the id risk is resolved.
+1. **DONE** — this document + live verification of open questions 1, 3.
+2. **DONE** — scriptable path (`scripts/findgcp-singlepass.py`); live `--dry-run`
+   on the fixture confirmed detection + GCP attachment recognized by WebODM.
+3. **DONE** — UI button (`public/load_buttons.js` via `addNewTaskButton`,
+   build-free); live run on 2026-06-10 (WebODM 3.2.4, project 11, task
+   `c359d8f1…`): the button created a partial task, uploaded the 6 fixture
+   images, detected 24 GCP entries server-side, attached `gcp_list.txt`, and
+   committed — the task reached the processing node with `partial=False` and the
+   GCP recognized (`GCPFile.exists()=True`, 24 entries). It then failed
+   reconstruction, as expected for synthetic images; a real ArUco flight is
+   needed to validate the georeferenced output itself.
 
-Each milestone is a separate change with its own tests and a live-run record.
+Each milestone was a separate change with its own tests and a live-run record.
