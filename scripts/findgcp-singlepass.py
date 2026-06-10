@@ -5,10 +5,15 @@ findgcp-singlepass.py — single-pass GCP workflow against a live WebODM.
 Detects ArUco GCPs on the SERVER (via the Find-GCP plugin) and feeds the result
 into the SAME processing run, so a georeferenced model is produced in one pass:
 
-    token -> create(partial) -> upload(images) -> detect -> upload(gcp_list) -> commit
+    login -> create(partial) -> upload(images) -> detect -> upload(gcp_list) -> commit
 
-This is the headless counterpart of the in-dialog button (see
-docs/single-pass-design.md). It needs:
+Auth: a Django **session** + CSRF token (via /login/). The Find-GCP plugin API
+is dispatched by WebODM's `api_view_handler`, a plain Django view that is NOT
+csrf_exempt (app/api/urls.py), so a JWT token alone is rejected with HTTP 403
+"CSRF verification failed". Session + X-CSRFToken is what the WebODM frontend
+itself uses, and it works for the core task endpoints too.
+
+Needs:
   - WebODM >= 2.9.5 with the Find-GCP plugin installed and enabled,
   - a worker that has OpenCV (cv2) — see docker/.
 
@@ -28,16 +33,20 @@ Example:
 
 import argparse
 import glob
+import http.cookiejar
 import json
 import mimetypes
 import os
+import re
 import sys
 import time
 import uuid
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".tif", ".tiff")
+SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
 
 
 def log(msg):
@@ -83,15 +92,25 @@ def _encode_multipart(fields, files):
 
 
 class WebODM:
-    def __init__(self, base_url, token=None, timeout=600):
+    def __init__(self, base_url, timeout=600):
         self.base = base_url.rstrip("/")
-        self.token = token
         self.timeout = timeout
+        self.jar = http.cookiejar.CookieJar()
+        self.opener = urlrequest.build_opener(urlrequest.HTTPCookieProcessor(self.jar))
 
-    def _headers(self, extra=None):
+    def _csrf(self):
+        for c in self.jar:
+            if c.name == "csrftoken":
+                return c.value
+        return None
+
+    def _headers(self, method, extra=None):
         h = {"Accept": "application/json"}
-        if self.token:
-            h["Authorization"] = "JWT {}".format(self.token)
+        if method not in SAFE_METHODS:
+            token = self._csrf()
+            if token:
+                h["X-CSRFToken"] = token
+            h["Referer"] = self.base + "/"   # satisfies Django's CSRF referer check on HTTPS
         if extra:
             h.update(extra)
         return h
@@ -99,13 +118,13 @@ class WebODM:
     def _request(self, method, path, headers=None, data=None):
         url = path if path.startswith("http") else self.base + path
         req = urlrequest.Request(url, data=data, method=method,
-                                 headers=self._headers(headers))
+                                 headers=self._headers(method, headers))
         try:
-            with urlrequest.urlopen(req, timeout=self.timeout) as resp:
+            with self.opener.open(req, timeout=self.timeout) as resp:
                 raw = resp.read()
         except HTTPError as e:
             body = e.read().decode("utf-8", "replace")
-            raise RuntimeError("HTTP {} on {} {}: {}".format(e.code, method, path, body))
+            raise RuntimeError("HTTP {} on {} {}: {}".format(e.code, method, path, body[:800]))
         except URLError as e:
             raise RuntimeError("connection error on {} {}: {}".format(method, path, e))
         if not raw:
@@ -119,35 +138,36 @@ class WebODM:
         return self._request("GET", path)
 
     def post_form(self, path, fields):
-        body = "&".join("{}={}".format(k, _urlencode(str(v))) for k, v in fields.items())
         return self._request("POST", path,
                              {"Content-Type": "application/x-www-form-urlencoded"},
-                             body.encode())
+                             urlencode(fields).encode())
 
     def post_multipart(self, path, fields=None, files=None):
         ctype, body = _encode_multipart(fields or {}, files or [])
         return self._request("POST", path, {"Content-Type": ctype}, body)
 
+    # --- auth (session + CSRF) ---
+
+    def login(self, username, password):
+        # GET the login page to obtain the csrftoken cookie + the form token.
+        with self.opener.open(self.base + "/login/", timeout=self.timeout) as r:
+            html = r.read().decode("utf-8", "replace")
+        m = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', html)
+        if not m:
+            raise RuntimeError("could not find a CSRF token on /login/")
+        self.post_form("/login/", {
+            "csrfmiddlewaretoken": m.group(1),
+            "username": username,
+            "password": password,
+            "next": "/",
+        })
+        if not any(c.name == "sessionid" for c in self.jar):
+            raise RuntimeError("login failed (no session cookie) — check credentials")
+
     # --- high-level steps ---
 
-    def authenticate(self, username, password):
-        data = "username={}&password={}".format(_urlencode(username), _urlencode(password))
-        req = urlrequest.Request(self.base + "/api/token-auth/", data=data.encode(),
-                                 method="POST",
-                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
-        try:
-            with urlrequest.urlopen(req, timeout=self.timeout) as resp:
-                tok = json.loads(resp.read().decode("utf-8")).get("token")
-        except HTTPError as e:
-            raise RuntimeError("authentication failed: HTTP {} {}".format(
-                e.code, e.read().decode("utf-8", "replace")))
-        if not tok:
-            raise RuntimeError("authentication returned no token")
-        self.token = tok
-
     def create_project(self, name):
-        p = self.post_form("/api/projects/", {"name": name})
-        return p["id"]
+        return self.post_form("/api/projects/", {"name": name})["id"]
 
     def create_partial_task(self, project_id, name=None, options=None, node="auto"):
         fields = {"partial": "true"}
@@ -157,8 +177,7 @@ class WebODM:
             fields["processing_node"] = node
         if options:
             fields["options"] = json.dumps(options)
-        t = self.post_multipart("/api/projects/{}/tasks/".format(project_id), fields)
-        return t["id"]
+        return self.post_multipart("/api/projects/{}/tasks/".format(project_id), fields)["id"]
 
     def upload_file(self, project_id, task_id, path_or_name, content=None, retries=3):
         if content is None:
@@ -210,18 +229,10 @@ class WebODM:
         raise RuntimeError("detection timed out after {}s".format(poll_timeout))
 
 
-def _urlencode(s):
-    from urllib.parse import quote_plus
-    return quote_plus(s)
-
-
 def find_images(images_arg):
     if os.path.isdir(images_arg):
-        out = []
-        for name in sorted(os.listdir(images_arg)):
-            if name.lower().endswith(IMAGE_EXTS):
-                out.append(os.path.join(images_arg, name))
-        return out
+        return [os.path.join(images_arg, n) for n in sorted(os.listdir(images_arg))
+                if n.lower().endswith(IMAGE_EXTS)]
     return sorted(glob.glob(images_arg))
 
 
@@ -230,11 +241,9 @@ def main():
         description="Single-pass GCP workflow against a live WebODM "
                     "(server-side ArUco detection via the Find-GCP plugin).")
     ap.add_argument("--url", required=True, help="WebODM base URL, e.g. http://localhost:8000")
-    ap.add_argument("--user", help="WebODM username")
+    ap.add_argument("--user", required=True, help="WebODM username")
     ap.add_argument("--password", default=os.environ.get("WEBODM_PASS"),
                     help="WebODM password (or env WEBODM_PASS)")
-    ap.add_argument("--token", default=os.environ.get("WEBODM_TOKEN"),
-                    help="JWT token instead of user/password (or env WEBODM_TOKEN)")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--project", type=int, help="existing project id")
     g.add_argument("--create-project", metavar="NAME", help="create a new project")
@@ -252,8 +261,8 @@ def main():
                     help="stop before commit (detect + attach GCP, but do not start processing)")
     args = ap.parse_args()
 
-    if not args.token and not (args.user and args.password):
-        die("provide --token, or --user and --password (or WEBODM_PASS).")
+    if not args.password:
+        die("provide --password or set WEBODM_PASS.")
 
     images = find_images(args.images)
     if len(images) < 2:
@@ -262,10 +271,9 @@ def main():
         die("coordinate file not found: {}".format(args.coords))
     options = json.loads(args.options) if args.options else None
 
-    wo = WebODM(args.url, token=args.token)
-    if not wo.token:
-        log("authenticating as {} ...".format(args.user))
-        wo.authenticate(args.user, args.password)
+    wo = WebODM(args.url)
+    log("logging in as {} ...".format(args.user))
+    wo.login(args.user, args.password)
 
     project_id = args.project
     if args.create_project:
