@@ -225,7 +225,7 @@
         var React = window.React;
         return React.createElement("button", {
             key: "findgcp-newtask",
-            className: "btn btn-default",
+            className: "btn btn-default btn-sm",
             style: { marginLeft: 4 },
             onClick: function () { openDialog(args.projectId, args.onNewTaskAdded); }
         }, React.createElement("i", { className: "fa fa-map-marker-alt" }), " Find-GCP Task");
