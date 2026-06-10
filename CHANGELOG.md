@@ -9,6 +9,17 @@ and behaviour may change between minor releases.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-10
+
+First stable release. Cleared the `experimental` flag in the manifest — the
+review gates are met (automated unit/API/integration tests, drift-guarded
+translations) and the full workflow has been verified end to end against a live
+WebODM 3.2.4: standalone detection, the single-pass dashboard button, per-user
+settings, and German/English UI. No functional changes versus 0.6.3.
+
+### Changed
+- `manifest.json`: `experimental: true → false`, version `1.0.0`.
+
 ## [0.6.3] - 2026-06-10
 
 ### Fixed

@@ -135,7 +135,10 @@ findgcp/                  # ← single root dir required by WebODM's plugin load
 ├── api.py                # detect + check endpoints (DRF TaskView), auth-gated
 ├── params.py             # Django-free parameter validation (unit-tested)
 ├── gcp_detect.py         # ported ArUco detection — self-contained for the worker
-├── templates/app.html    # standalone detection tool (drop images → download gcp_list)
+├── templates/
+│   ├── app.html          # standalone detection tool (drop images → download gcp_list)
+│   └── settings.html     # per-user default detection parameters
+├── locale/de/…/django.po # German catalog (+ compiled .mo; en is the source)
 └── public/
     ├── load_buttons.js   # "Find-GCP task" dashboard button (single-pass)
     ├── style.css
@@ -160,7 +163,7 @@ as a single root folder, and verifies the archive structure.
 zip and publish a GitHub Release with the archive attached:
 
 ```bash
-git tag v0.3.0 && git push origin v0.3.0
+git tag v1.0.0 && git push origin v1.0.0
 ```
 
 See [`.github/workflows/release.yml`](.github/workflows/release.yml). CI
