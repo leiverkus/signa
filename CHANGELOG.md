@@ -44,8 +44,9 @@ issues; not yet verified against a live WebODM instance.
   No server-side temporary files or directories are created. Results are further
   bound to the user who started the run (via the plugin's per-user datastore)
   and to the task pk: the status endpoint only returns a result whose celery id
-  is recorded in the requesting user's store with a matching task. The ownership
-  record is released once a terminal result has been served.
+  is recorded in the requesting user's store with a matching task, and it
+  re-checks the user's current `change_project` permission on each poll (a
+  revoked user can no longer read a finished result).
 
 ### Added
 - `docker/` — a `worker.Dockerfile` extending `webodm/webodm_webapp` with
@@ -70,6 +71,13 @@ issues; not yet verified against a live WebODM instance.
   `cv2`, permissions, warnings UI) built around the synthetic fixture.
 
 ### Changed
+- **`webodmMinVersion` raised to `2.9.5`** — the plugin imports
+  `check_project_perms`, which only exists from WebODM 2.9.5; on 2.0.0–2.9.4 the
+  plugin import would fail.
+- **Removed `requirements.txt`** — WebODM would install OpenCV into the plugin's
+  web-side site-packages, which does not help the worker (where detection runs)
+  and only wastes space and install time. The worker gets OpenCV from the
+  `docker/` image instead.
 - Reproducible Docker build: `worker.Dockerfile` defaults `WEBODM_VERSION` to a
   concrete tag (`3.2.4`, override to match your install) instead of `latest`,
   and pins `opencv-contrib-python-headless==4.10.0.84`. `requirements.txt`

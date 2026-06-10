@@ -6,7 +6,9 @@ loader, the worker actually importing `cv2`, the DRF permission/run-binding
 layer, and the browser UI. This checklist walks that path against a running
 instance using the synthetic fixture, so no drone flight is required.
 
-Tested against WebODM 3.2.4 (`webodm/webodm_webapp:3.2.4`).
+Written for WebODM 3.2.4 (`webodm/webodm_webapp:3.2.4`). Requires WebODM
+**≥ 2.9.5** (the plugin uses `check_project_perms`). This checklist has **not**
+yet been run against a live instance — record results as you work through it.
 
 ## 0. Prerequisites
 

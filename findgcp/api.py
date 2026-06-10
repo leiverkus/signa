@@ -1,8 +1,10 @@
 from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
 
+from app.models import Task
 from app.plugins import UserDataStore
 from app.plugins.views import TaskView
 from app.plugins.worker import run_function_async
@@ -94,12 +96,24 @@ class TaskFindGCPCheck(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request, pk=None, celery_task_id=None, **kwargs):
+        # Re-check the CURRENT project permission, not just the original run
+        # binding: if the user's change_project access was revoked after starting
+        # the run, deny now. All denials return a terminal error (HTTP 200) so the
+        # client stops polling instead of looping on a 404.
+        try:
+            task = Task.objects.only('id', 'project').get(pk=pk)
+        except (ObjectDoesNotExist, ValidationError, ValueError):
+            return Response({'ready': True, 'error': _('Result not found.')},
+                            status=status.HTTP_200_OK)
+        if not request.user.has_perm('change_project', task.project):
+            return Response({'ready': True, 'error': _('Result not found.')},
+                            status=status.HTTP_200_OK)
+
         store = UserDataStore(PLUGIN_NAMESPACE, request.user)
         key = _run_key(celery_task_id)
         owned_task = store.get_string(key, "")
         if not owned_task or owned_task != str(pk):
-            # Not started by this user (or not for this task). Terminal error
-            # (HTTP 200) so the client stops polling instead of looping.
+            # Not started by this user (or not for this task).
             return Response({'ready': True, 'error': _('Result not found.')},
                             status=status.HTTP_200_OK)
 

@@ -1,10 +1,10 @@
 # Custom worker image for the Find-GCP plugin
 
 The Find-GCP detection runs in WebODM's **Celery worker**, which needs `cv2`
-(OpenCV) importable in its own process — the plugin's `requirements.txt` does
-not reach it (see the main README, "Worker image requirement"). These files
-build a thin image that adds OpenCV and wire it into both the `webapp` and
-`worker` services (they share one image in WebODM's compose).
+(OpenCV) importable in its own process (see the main README, "Worker image
+requirement"). These files build a thin image that adds OpenCV and wire it into
+both the `webapp` and `worker` services (they share one image in WebODM's
+compose).
 
 ## Files
 

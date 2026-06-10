@@ -21,9 +21,9 @@ optionally upload via the API) is kept under [`standalone/`](standalone/).
 ### Worker image requirement (important)
 
 Detection runs in the **Celery worker** via WebODM's `run_function_async`
-(`eval_async`), which compiles the function source in a bare namespace and does
-**not** add the plugin's per-plugin site-packages to `sys.path`. As a result,
-the `requirements.txt` install does *not* make `cv2` importable in the worker.
+(`eval_async`), which compiles the function source in a bare namespace in the
+worker process. The plugin therefore does **not** ship a `requirements.txt`: a
+web-side install would not reach the worker and would only waste space and time.
 
 **OpenCV must be present in the worker image.** In WebODM's compose the `worker`
 and `webapp` services share one image (`webodm/webodm_webapp`), so the fix is a
@@ -90,7 +90,6 @@ findgcp/                  # ← single root dir required by WebODM's plugin load
 ├── plugin.py             # Plugin(PluginBase): menu, app + API mount points
 ├── api.py                # detect + check endpoints (DRF TaskView), auth-gated
 ├── gcp_detect.py         # ported ArUco detection — self-contained for the worker
-├── requirements.txt      # opencv-contrib-python-headless, numpy
 ├── templates/app.html    # UI (vanilla JS + fetch, no JSX build)
 └── public/               # style.css, icon.svg
 ```
