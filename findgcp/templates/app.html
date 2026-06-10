@@ -1,0 +1,226 @@
+{% extends "app/plugins/templates/base.html" %}
+{% load i18n %}
+
+{% block content %}
+{% csrf_token %}
+<link rel="stylesheet" type="text/css" href="style.css?v=1">
+
+<div class="findgcp">
+  <h2><i class="fa fa-map-marker-alt"></i> {% trans "Find-GCP — automatic ArUco GCP detection" %}</h2>
+  <p class="help">
+    {% blocktrans %}Detect ArUco markers in a task's images and match them against your
+    measured GCP coordinates to produce an ODM-compatible <code>gcp_list.txt</code>.{% endblocktrans %}
+  </p>
+
+  <form id="findgcp-form" onsubmit="return false;">
+    <div class="row">
+      <label>{% trans "Project" %}</label>
+      <select id="project"><option value="">{% trans "Loading…" %}</option></select>
+    </div>
+    <div class="row">
+      <label>{% trans "Task" %}</label>
+      <select id="task"><option value="">{% trans "Select a project first" %}</option></select>
+    </div>
+
+    <div class="row">
+      <label>{% trans "GCP coordinate file" %}</label>
+      <input type="file" id="coords" accept=".txt,.csv,text/plain">
+      <small>{% trans "Format per line: id easting northing elevation (whitespace or comma separated)." %}</small>
+    </div>
+
+    <div class="grid">
+      <div class="row">
+        <label>{% trans "EPSG (target CRS)" %}</label>
+        <input type="number" id="epsg" value="28191">
+      </div>
+      <div class="row">
+        <label>{% trans "ArUco dictionary" %}</label>
+        <select id="dict">
+          <option value="1" selected>1 — DICT_4X4_100</option>
+          <option value="99">99 — custom 3×3</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>{% trans "minrate" %}</label>
+        <input type="number" id="minrate" value="0.01" step="0.001" min="0.005">
+      </div>
+      <div class="row">
+        <label>{% trans "ignore" %}</label>
+        <input type="number" id="ignore" value="0.33" step="0.01" min="0" max="1">
+      </div>
+    </div>
+
+    <div class="row checkbox">
+      <label><input type="checkbox" id="adjust" checked> {% trans "Color adjustment (recommended for strong sunlight)" %}</label>
+    </div>
+
+    <div class="row">
+      <button id="run" class="btn btn-primary"><i class="fa fa-cogs"></i> {% trans "Detect GCPs" %}</button>
+    </div>
+  </form>
+
+  <div id="status" class="status" style="display:none;"></div>
+  <div id="result" class="result" style="display:none;"></div>
+</div>
+
+<script>
+(function(){
+  // Plugin name = path segment after "plugins" (robust to folder rename)
+  var segs = window.location.pathname.split("/").filter(function(s){ return s.length; });
+  var pluginName = segs[segs.indexOf("plugins") + 1] || "findgcp";
+  var apiBase = "/api/plugins/" + pluginName;
+
+  function csrfToken(){
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+    var el = document.querySelector('input[name=csrfmiddlewaretoken]');
+    return el ? el.value : "";
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+  var projectSel = $("project"), taskSel = $("task");
+
+  function asList(data){
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    return [];
+  }
+
+  function loadProjects(){
+    fetch("/api/projects/?page_size=1000", {credentials: "same-origin"})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var projects = asList(data);
+        projectSel.innerHTML = '<option value="">— {% trans "select" %} —</option>';
+        projects.forEach(function(p){
+          var o = document.createElement("option");
+          o.value = p.id; o.textContent = p.name + " (#" + p.id + ")";
+          projectSel.appendChild(o);
+        });
+      })
+      .catch(function(){ projectSel.innerHTML = '<option value="">{% trans "Failed to load projects" %}</option>'; });
+  }
+
+  function loadTasks(projectId){
+    taskSel.innerHTML = '<option value="">{% trans "Loading…" %}</option>';
+    fetch("/api/projects/" + projectId + "/tasks/", {credentials: "same-origin"})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var tasks = asList(data);
+        taskSel.innerHTML = '<option value="">— {% trans "select" %} —</option>';
+        tasks.forEach(function(t){
+          var o = document.createElement("option");
+          o.value = t.id; o.textContent = (t.name || t.id);
+          taskSel.appendChild(o);
+        });
+      })
+      .catch(function(){ taskSel.innerHTML = '<option value="">{% trans "Failed to load tasks" %}</option>'; });
+  }
+
+  projectSel.addEventListener("change", function(){
+    if (this.value) loadTasks(this.value);
+    else taskSel.innerHTML = '<option value="">{% trans "Select a project first" %}</option>';
+  });
+
+  function setStatus(html, kind){
+    var s = $("status");
+    s.style.display = "block";
+    s.className = "status " + (kind || "");
+    s.innerHTML = html;
+  }
+
+  function renderSummary(summary, taskId, celeryId){
+    var dl = apiBase + "/task/" + taskId + "/download/" + celeryId + "?filename=gcp_list.txt";
+    var rows = "";
+    var per = summary.markers_per_id || {};
+    Object.keys(per).forEach(function(id){
+      var weak = (summary.weak_markers || []).indexOf(parseInt(id, 10)) !== -1;
+      rows += "<tr><td>" + id + "</td><td>" + per[id] + (weak ? ' <span class="warn">⚠ &lt;3</span>' : "") + "</td></tr>";
+    });
+    var warnUnique = summary.unique_markers < 5
+      ? '<p class="warn">⚠ {% trans "Fewer than 5 unique markers — 5–10+ are recommended for a robust bundle adjustment." %}</p>' : "";
+    var unmatched = (summary.unmatched_ids && summary.unmatched_ids.length)
+      ? '<p class="warn">⚠ {% trans "Detected but not in the coordinate file:" %} ' + summary.unmatched_ids.join(", ") + '</p>' : "";
+
+    $("result").style.display = "block";
+    $("result").innerHTML =
+      '<h3>{% trans "Detection complete" %}</h3>' +
+      '<ul>' +
+        '<li>{% trans "Images" %}: ' + summary.images_total +
+          (summary.images_unreadable ? ' (' + summary.images_unreadable + ' {% trans "unreadable" %})' : '') + '</li>' +
+        '<li>{% trans "GCP entries written" %}: ' + summary.detections + '</li>' +
+        '<li>{% trans "Unique markers" %}: ' + summary.unique_markers + '</li>' +
+        '<li>EPSG: ' + summary.epsg + '</li>' +
+      '</ul>' +
+      warnUnique + unmatched +
+      '<table class="markers"><thead><tr><th>{% trans "Marker ID" %}</th><th>{% trans "Images" %}</th></tr></thead><tbody>' +
+        rows + '</tbody></table>' +
+      '<p><a class="btn btn-primary" href="' + dl + '"><i class="fa fa-download"></i> {% trans "Download gcp_list.txt" %}</a></p>';
+  }
+
+  function poll(taskId, celeryId){
+    fetch(apiBase + "/task/" + taskId + "/check/" + celeryId, {credentials: "same-origin"})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (!data.ready){
+          setStatus('<i class="fa fa-spinner fa-spin"></i> {% trans "Detecting markers…" %}', "");
+          setTimeout(function(){ poll(taskId, celeryId); }, 2000);
+          return;
+        }
+        if (data.error){
+          setStatus('<i class="fa fa-exclamation-triangle"></i> ' + data.error, "error");
+          $("run").disabled = false;
+          return;
+        }
+        $("status").style.display = "none";
+        $("run").disabled = false;
+        renderSummary(data.summary || {}, taskId, celeryId);
+      })
+      .catch(function(){
+        setStatus("{% trans 'Lost connection while polling.' %}", "error");
+        $("run").disabled = false;
+      });
+  }
+
+  $("run").addEventListener("click", function(){
+    $("result").style.display = "none";
+    var taskId = taskSel.value;
+    if (!taskId){ setStatus("{% trans 'Please select a task.' %}", "error"); return; }
+    if (!$("coords").files.length){ setStatus("{% trans 'Please choose a coordinate file.' %}", "error"); return; }
+
+    var fd = new FormData();
+    fd.append("coords", $("coords").files[0]);
+    fd.append("epsg", $("epsg").value);
+    fd.append("dict", $("dict").value);
+    fd.append("minrate", $("minrate").value);
+    fd.append("ignore", $("ignore").value);
+    fd.append("adjust", $("adjust").checked ? "true" : "false");
+
+    $("run").disabled = true;
+    setStatus('<i class="fa fa-spinner fa-spin"></i> {% trans "Starting detection…" %}', "");
+
+    fetch(apiBase + "/task/" + taskId + "/detect", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"X-CSRFToken": csrfToken()},
+      body: fd
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.error){
+          setStatus('<i class="fa fa-exclamation-triangle"></i> ' + data.error, "error");
+          $("run").disabled = false;
+          return;
+        }
+        poll(taskId, data.celery_task_id);
+      })
+      .catch(function(){
+        setStatus("{% trans 'Request failed.' %}", "error");
+        $("run").disabled = false;
+      });
+  });
+
+  loadProjects();
+})();
+</script>
+{% endblock %}

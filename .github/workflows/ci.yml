@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash syntax check
+        run: |
+          bash -n build-plugin.sh
+          bash -n standalone/findgcp-webodm.sh
+
+      - name: shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Compile-check plugin sources
+        run: python -m compileall -q findgcp
+
+      - name: Validate manifest.json
+        run: python3 -c "import json; m=json.load(open('findgcp/manifest.json')); assert m['name'] and m['version']; print('manifest ok:', m['name'], m['version'])"
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test plugin build
+        run: |
+          chmod +x build-plugin.sh
+          ./build-plugin.sh
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: findgcp-plugin-zip
+          path: dist/findgcp-*.zip

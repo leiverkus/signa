@@ -1,0 +1,13 @@
+{
+    "name": "Find-GCP",
+    "webodmMinVersion": "2.0.0",
+    "description": "Automatic ArUco ground control point detection. Detects ArUco markers in a task's images, matches them against measured GCP coordinates and produces an ODM-compatible gcp_list.txt.",
+    "version": "1.0.0",
+    "author": "Patrick Leiverkus",
+    "email": "leiverkus@gmail.com",
+    "repository": "https://github.com/leiverkus/Find-GCP-WebODM-Workflow",
+    "tags": ["gcp", "aruco", "photogrammetry"],
+    "homepage": "https://github.com/leiverkus/Find-GCP-WebODM-Workflow",
+    "experimental": false,
+    "deprecated": false
+}

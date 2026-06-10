@@ -109,6 +109,9 @@ credentials/
 .DS_Store
 Thumbs.db
 
+# === Build output ===
+dist/
+
 # === Backups & archives ===
 *.zip
 *.tar

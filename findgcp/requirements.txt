@@ -1,0 +1,4 @@
+# Server-side ArUco detection. opencv-contrib provides cv2.aruco.
+# Use the headless build (no GUI/X11) since this runs in the WebODM worker.
+opencv-contrib-python-headless
+numpy

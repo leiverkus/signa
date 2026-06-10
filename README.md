@@ -1,130 +1,97 @@
-# Find-GCP → WebODM Workflow
+# Find-GCP for WebODM
 
-Automated workflow for processing archaeological drone surveys: ArUco GCP
-detection with [Find-GCP](https://github.com/zsiki/Find-GCP), preparation for
-[WebODM](https://docs.webodm.org) (ODX engine), and integration into a
-PostGIS / GeoDjango / QFieldCloud stack. Built for survey sites with
-GNSS-measured ground control.
+A [WebODM](https://github.com/WebODM/WebODM) plugin for **automatic ArUco ground
+control point detection**. It detects ArUco markers in a task's images, matches
+them against your measured GCP coordinates and produces an ODM-compatible
+`gcp_list.txt` — directly inside WebODM, no command line required.
 
-The core is a single Bash script, [`findgcp-webodm.sh`](findgcp-webodm.sh),
-that wraps the following pipeline:
+The detection logic is ported from [Find-GCP](https://github.com/zsiki/Find-GCP)
+(`gcp_find.py`) and runs server-side in the WebODM worker.
 
-1. **Detection** — find ArUco markers in the images (`gcp_find.py`)
-2. **Report** — sanity check: which GCP on how many images, warnings
-3. **Check** *(optional)* — visual review via `gcp_check.py`
-4. **Prep** *(optional)* — WebODM-ready folder structure (images as symlinks)
-5. **Upload** *(optional)* — direct task upload via the WebODM API
+A standalone Bash CLI for the same workflow (run Find-GCP outside WebODM and
+optionally upload via the API) is kept under [`standalone/`](standalone/).
 
-## Requirements
+## Install in WebODM
 
-- **Bash** 4+
-- **Python** 3.10+ with OpenCV incl. ArUco contrib:
-  ```bash
-  pip install opencv-python opencv-contrib-python
-  ```
-- **Find-GCP** checked out locally (default path: `~/src/Find-GCP`):
-  ```bash
-  git clone https://github.com/zsiki/Find-GCP ~/src/Find-GCP
-  ```
-- `jq` and `curl` — only for the optional `--upload` step
+1. Download `findgcp-<version>.zip` from the
+   [Releases](https://github.com/leiverkus/Find-GCP-WebODM-Workflow/releases) page.
+2. In WebODM: **Administration → Plugins → Load Plugin (.zip)** and upload the zip.
+3. Enable the plugin. A **Find-GCP** entry appears in the main menu.
 
-## Quick start
+The plugin declares `opencv-contrib-python-headless` and `numpy` in
+`requirements.txt`; WebODM installs these when the plugin is built. They must be
+available to the **worker** container that runs the detection.
+
+## Usage
+
+Open **Find-GCP** from the menu, then:
+
+1. Pick a **project** and a **task** (the task must already have its images).
+2. Upload the **GCP coordinate file** — one marker per line:
+   `id easting northing elevation` (whitespace or comma separated).
+3. Set the parameters (see below) and click **Detect GCPs**.
+4. Review the summary (markers, image counts, warnings) and **download
+   `gcp_list.txt`**. Add it to the task's GCP field before processing.
+
+### Parameters
+
+| Field | Maps to (Find-GCP) | Default | Notes |
+|-------|--------------------|---------|-------|
+| EPSG | `--epsg` | `28191` | target CRS of the coordinates; written as the `gcp_list.txt` header |
+| ArUco dictionary | `-d` | `1` (DICT_4X4_100) | `99` = custom 3×3 |
+| minrate | `--minrate` → `minMarkerPerimeterRate` | `0.01` | lower to detect smaller markers (don't go below ~0.005) |
+| ignore | `--ignore` → `perspectiveRemoveIgnoredMarginPerCell` | `0.33` | burnt-in protection for strong sunlight |
+| Color adjustment | `--adjust` | on | LUT correction against overexposure |
+
+> Always measure GCP coordinates in the target CRS (or reproject beforehand) —
+> WebODM does not reproject them. The image EXIF (WGS84) may differ; ODX
+> reprojects the EXIF internally.
+
+## Plugin layout
+
+```
+findgcp/                  # ← single root dir required by WebODM's plugin loader
+├── __init__.py
+├── manifest.json         # name, version, webodmMinVersion, …
+├── plugin.py             # Plugin(PluginBase): menu, app + API mount points
+├── api.py                # detect / check / download endpoints (DRF TaskView)
+├── gcp_detect.py         # ported ArUco detection (runs in the worker)
+├── requirements.txt      # opencv-contrib-python-headless, numpy
+├── templates/app.html    # UI (vanilla JS + fetch, no JSX build)
+└── public/               # style.css, icon.svg
+```
+
+This mirrors WebODM's core-plugin conventions (cf. `coreplugins/contours`,
+`coreplugins/posm-gcpi`). The loader (`app/admin.py → plugin_upload`) requires
+the archive to contain **exactly one** root directory holding `plugin.py`,
+`manifest.json` and `__init__.py`.
+
+## Building the release zip
 
 ```bash
-# Simple run with the regional default (EPSG:28191, 4x4 markers)
-./findgcp-webodm.sh \
-  -i ~/fieldwork/zira2026/raw \
-  -c gcp_coords.txt \
-  -o ~/fieldwork/zira2026/processed
+./build-plugin.sh          # → dist/findgcp-<version>.zip
 ```
 
-The GCP coordinate file uses the format `id easting northing elevation` and
-must **already be in the target CRS** — WebODM does not reproject anything
-(see below).
+The script reads the version from `manifest.json`, zips the `findgcp/` directory
+as a single root folder, and verifies the archive structure.
 
-## Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-i, --images DIR` | directory with drone images *(required)* | — |
-| `-c, --coords FILE` | GCP coordinate file *(required)* | — |
-| `-o, --output DIR` | output directory *(required)* | — |
-| `-e, --epsg CODE` | EPSG code of the GCP coordinates | `28191` |
-| `-d, --dict ID` | ArUco dictionary (1 = 4x4_100, 99 = 3x3 custom) | `1` |
-| `-p, --pattern GLOB` | image file glob | `*.JPG` |
-| `--minrate VAL` | min. relative marker size | `0.01` |
-| `--ignore VAL` | pixel ignore rate (burnt-in protection) | `0.33` |
-| `--no-adjust` | disable color adjustment | on |
-| `--findgcp-dir DIR` | path to the Find-GCP installation | `~/src/Find-GCP` |
-| `--check` | `gcp_check.py` GUI after detection | off |
-| `--prep` | build a WebODM-ready folder structure | off |
-| `--upload` | upload via the WebODM API | off |
-| `--webodm-url / --webodm-user / --webodm-pass / --project` | upload parameters | — |
-
-Full help: `./findgcp-webodm.sh --help`.
-
-### Examples
+**Automated releases:** push a tag matching the manifest version to build the
+zip and publish a GitHub Release with the archive attached:
 
 ```bash
-# 3x3 custom markers, smaller minimum size
-./findgcp-webodm.sh -i ./images -c gcps.txt -o ./out -d 99 --minrate 0.01
-
-# ITM (Israeli standard CRS) instead of Palestine Belt
-./findgcp-webodm.sh -i ./images -c gcps.txt -o ./out -e 2039
-
-# Full pipeline including upload
-WEBODM_PASS=secret ./findgcp-webodm.sh -i ./images -c gcps.txt -o ./out \
-  --prep --upload --webodm-url http://192.168.1.10:8000 \
-  --webodm-user user --project "Site-Area3-2026"
+git tag v1.0.0 && git push origin v1.0.0
 ```
 
-## Coordinate reference systems
+See [`.github/workflows/release.yml`](.github/workflows/release.yml). CI
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs shellcheck, a
+Python compile-check and a test build on every push/PR.
 
-Always measure GCP coordinates in the target CRS, or reproject them beforehand —
-never let WebODM do the conversion. The image EXIF (WGS84) and the GCP CRS may
-differ; ODX reprojects the EXIF internally.
+## Standalone CLI (alternative)
 
-| EPSG | Name | When? |
-|------|------|-------|
-| `28191` | Palestine 1923 / Palestine Belt | regional default, West Bank, Jerusalem |
-| `2039`  | Israeli Transverse Mercator (ITM) | modern Israeli standard CRS |
-| `32636` | UTM zone 36N | generic Israel |
-| `32637` | UTM zone 37N | Jordan |
-| `4326`  | WGS84 geographic | only as input CRS from EXIF GPS |
-
-## Output structure
-
-```
-<output>/
-├── gcp_list.txt              # ODM-compatible GCP file (Find-GCP output)
-├── gcp_report.txt            # sanity report
-├── findgcp_<timestamp>.log
-└── webodm_ready/             # only with --prep
-    ├── images/               # symlinks (saves space on 1000+ images)
-    ├── gcp_list.txt
-    └── README_webodm.md      # recommended WebODM task options
-```
-
-## Known pitfalls
-
-- **Strong sunlight**: the default `--ignore 0.33` is tuned for harsh summer
-  light; consider printing gray markers instead of white.
-- **DJI EXIF altitudes** are relative to take-off, not absolute — fine for the
-  bundle block, but not for direct DEM validation against GCP heights.
-- **`gcp_check.py` needs X11/display** — on headless servers use `ssh -X` or
-  omit `--check`.
-- **WebODM ODX ≠ ODM**: decoupled since 04/2026; uses the `webodm/odx`
-  containers, not `opendronemap/*`.
-
-## Development
-
-```bash
-bash -n findgcp-webodm.sh   # syntax check
-shellcheck findgcp-webodm.sh
-```
-
-CI runs `shellcheck` automatically (see
-[`.github/workflows/shellcheck.yml`](.github/workflows/shellcheck.yml)).
+If you prefer to run detection outside WebODM, the original Bash pipeline is in
+[`standalone/findgcp-webodm.sh`](standalone/findgcp-webodm.sh) — it wraps
+Find-GCP (`gcp_find.py`), builds a sanity report and can prep/upload a
+WebODM-ready folder. Run `standalone/findgcp-webodm.sh --help` for details.
 
 ## License
 
@@ -132,8 +99,8 @@ CI runs `shellcheck` automatically (see
 
 ## References
 
+- WebODM: <https://github.com/WebODM/WebODM>
 - Find-GCP: <https://github.com/zsiki/Find-GCP>
-- WebODM docs: <https://docs.webodm.org>
 - ArUco detector parameters: <https://docs.opencv.org/trunk/d5/dae/tutorial_aruco_detection.html>
 - Siki 2021, *Baltic Journal of Modern Computing*:
   <https://www.bjmc.lu.lv/fileadmin/user_upload/lu_portal/projekti/bjmc/Contents/9_1_06_Siki.pdf>
