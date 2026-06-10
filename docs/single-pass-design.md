@@ -122,16 +122,29 @@ We verify (a) on the live instance before committing to the UI build. If no
 stable accessor exists, we ship the scriptable path as the supported single-pass
 and keep the button experimental.
 
-## Open questions (verify on the live instance)
+## Open questions
 
-1. Does uploading `gcp_list.txt` to a partial task via `/upload/` register it as
-   the GCP for processing? (Expected yes; confirm with a real commit + check
-   `has_gcp` in the result.)
+1. **RESOLVED — yes.** Uploading `gcp_list.txt` to a partial task via `/upload/`
+   places it in the task directory, and WebODM's own GCP discovery recognizes it:
+   on a live 3.2.4 run (project 10, task `45762e20…`), the file landed next to the
+   6 images and `app.classes.gcp.GCPFile` reported `exists()=True`, 24 entries,
+   SRS `EPSG:28191`. (Minor: `images_count` read 7 with 6 images — a cosmetic
+   WebODM counter quirk; ODM scans images by extension and gets the GCP via
+   `--gcp`, so it does not affect processing.)
+3. **RESOLVED — yes.** `/upload/` accepts a single non-image `.txt` after the
+   images (`flatten_files` + `handle_images_upload`); no need to batch it with the
+   images.
 2. Can a panel item obtain the partial task id without fragile coupling? (Drives
-   the UI feasibility.)
-3. Does `/upload/` accept a single non-image `.txt` after the images, or must the
-   GCP be included in the same upload batch?
-4. Commit retry / timing semantics when injecting a step before commit.
+   the UI feasibility — still open, for Phase 3.)
+4. Commit retry / timing semantics when injecting a step before commit. (Phase 3.)
+
+### Auth note (learned during the live run)
+The Find-GCP plugin API is dispatched by WebODM's `api_view_handler`, a plain
+Django view registered **without** `csrf_exempt` (`app/api/urls.py`). A JWT token
+alone is rejected with HTTP 403 "CSRF verification failed" — the core DRF
+ViewSets are csrf_exempt and accept JWT, but the plugin endpoints require a
+**session + `X-CSRFToken`** (what the frontend uses). `findgcp-singlepass.py`
+logs in via `/login/` and sends the CSRF header on every unsafe request.
 
 ## Test plan
 
