@@ -17,6 +17,9 @@ optionally upload via the API) is kept under [`standalone/`](standalone/).
    [Releases](https://github.com/leiverkus/Find-GCP-WebODM-Workflow/releases) page.
 2. In WebODM: **Administration → Plugins → Load Plugin (.zip)** and upload the zip.
 3. Enable the plugin. A **Find-GCP** entry appears in the main menu.
+4. **Restart the web app** after uploading (e.g. `docker restart webapp`). The
+   plugin cache is per-gunicorn-worker, so without a restart the page can return
+   404 intermittently until every worker has picked up the new plugin.
 
 ### Worker image requirement (important)
 

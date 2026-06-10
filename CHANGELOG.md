@@ -11,8 +11,10 @@ and behaviour may change between minor releases.
 
 ## [0.2.0] - 2026-06-10
 
-Hardening release after two internal reviews. Addresses production-blocking
-issues; not yet verified against a live WebODM instance.
+Hardening release after three internal reviews, verified end to end against a
+live WebODM 3.2.4 on 2026-06-10: the plugin installed and loaded, detection ran
+in the worker with real OpenCV, and the output matched the synthetic fixture
+exactly (see `docs/manual-test.md`).
 
 ### Fixed
 - **Parser warnings surfaced in the UI**: skipped coordinate lines and duplicate

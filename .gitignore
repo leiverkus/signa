@@ -130,3 +130,6 @@ temp/
 CLAUDE.md
 CLAUDE-home.md
 AGENTS.md
+
+# === Local Claude Code settings (never commit) ===
+.claude/

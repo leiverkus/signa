@@ -7,8 +7,21 @@ layer, and the browser UI. This checklist walks that path against a running
 instance using the synthetic fixture, so no drone flight is required.
 
 Written for WebODM 3.2.4 (`webodm/webodm_webapp:3.2.4`). Requires WebODM
-**≥ 2.9.5** (the plugin uses `check_project_perms`). This checklist has **not**
-yet been run against a live instance — record results as you work through it.
+**≥ 2.9.5** (the plugin uses `check_project_perms`).
+
+**Live run — 2026-06-10, WebODM 3.2.4 (`webodm/webodm_webapp:latest`, content
+3.2.4): PASSED.** Plugin installed via the admin upload and loaded; detection ran
+in the Celery worker with real OpenCV; the downloaded `gcp_list.txt` was
+byte-for-byte identical (sorted) to the fixture's `expected_gcp_list.txt`
+(24 detections, 5 markers). Notes from that run:
+- After the admin upload, `/plugins/findgcp/` returned 404 intermittently until
+  `webapp` was restarted — the plugin cache is per-gunicorn-worker, so a
+  `docker restart webapp` is needed for all workers to pick up a hot-uploaded
+  plugin.
+- OpenCV was provided to the worker transiently (`docker exec worker pip install
+  opencv-contrib-python-headless==4.10.0.84`) for the run; for a durable setup
+  use the `docker/` worker image instead (a transient install is lost when the
+  container is recreated).
 
 ## 0. Prerequisites
 
