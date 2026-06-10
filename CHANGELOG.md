@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Lint-only; the helper script is not part of the plugin zip, so the published
   `1.1.2` artifact is unchanged.
 
+### Changed
+- CI: bumped GitHub Actions off the deprecated Node.js 20 runtime —
+  `actions/checkout@v4 → v6`, `actions/setup-python@v5 → v6`,
+  `actions/upload-artifact@v4 → v7`. Workflow-only; no effect on the plugin.
+
 ## [1.1.2] - 2026-06-11
 
 Robustness fixes from a second code review. The version bump also re-busts the
