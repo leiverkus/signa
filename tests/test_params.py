@@ -75,6 +75,17 @@ def test_minrate_above_one_rejected():
     assert params is None and "minrate" in err
 
 
+def test_minrate_below_floor_rejected():
+    # below the documented 0.005 floor (the old code accepted down to 0.0001)
+    params, err = validate_params({"epsg": "28191", "minrate": "0.0001"})
+    assert params is None and "minrate" in err
+
+
+def test_minrate_at_floor_accepted():
+    params, err = validate_params({"epsg": "28191", "minrate": "0.005"})
+    assert err is None and params["minrate"] == 0.005
+
+
 def test_minrate_nan_rejected():
     params, err = validate_params({"epsg": "28191", "minrate": "nan"})
     assert params is None and "minrate" in err

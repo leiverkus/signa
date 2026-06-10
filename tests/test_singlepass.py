@@ -1,11 +1,17 @@
-"""Unit tests for the pure helpers in scripts/findgcp-singlepass.py.
+"""Unit tests for scripts/findgcp-singlepass.py.
 
-The networked parts need a live WebODM (covered by docs/manual-test.md); here we
-just guard the fiddly multipart encoder and the image globbing.
+The pure helpers (multipart encoder, image globbing) are tested directly. The
+networked workflow is exercised through ``process_task`` with a fake WebODM
+client — covering the cleanup contract (orphan removal, the commit-in-flight
+race, --keep-on-error, --dry-run) without a live server. The full live round
+trip is still covered by docs/manual-test.md.
 """
 
 import importlib.util
 import os
+import types
+
+import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "..", "scripts", "findgcp-singlepass.py")
@@ -58,3 +64,95 @@ def test_find_images_glob(tmp_path):
     (tmp_path / "x2.JPG").write_bytes(b"x")
     found = sp.find_images(str(tmp_path / "*.JPG"))
     assert len(found) == 2
+
+
+# --- process_task cleanup contract (findings #1, #5) -----------------------
+
+class FakeWebODM:
+    """Records calls; lets a test make any step raise to simulate a failure."""
+
+    def __init__(self, fail_on=None, summary=None):
+        self.fail_on = fail_on                       # method name that raises
+        self.summary = summary if summary is not None else {
+            "detections": 24, "unique_markers": 5, "weak_markers": [],
+            "gcp_list": "EPSG:28191\n1 1 2 3 4 5 img1.JPG 1\n",
+        }
+        self.calls = []
+
+    def _maybe_fail(self, name):
+        self.calls.append(name)
+        if name == self.fail_on:
+            raise RuntimeError("simulated {} failure".format(name))
+
+    def upload_file(self, project_id, task_id, path_or_name, content=None):
+        # only the gcp_list upload is interesting to fail on; image uploads
+        # share the method but we key the failure on a distinct name below
+        self._maybe_fail("upload_gcp" if content is not None else "upload_image")
+
+    def detect(self, *a, **k):
+        self._maybe_fail("detect")
+        return self.summary
+
+    def commit(self, project_id, task_id):
+        self._maybe_fail("commit")
+
+    def remove_task(self, project_id, task_id):
+        self.calls.append("remove_task")
+
+
+def _args(**over):
+    base = dict(url="http://x", coords="gcp.txt", epsg=28191, dict_id=1,
+                minrate=0.01, ignore=0.33, adjust=True,
+                dry_run=False, keep_on_error=False)
+    base.update(over)
+    return types.SimpleNamespace(**base)
+
+
+IMAGES = ["a.JPG", "b.JPG"]
+
+
+def test_success_commits_and_keeps_task():
+    wo = FakeWebODM()
+    sp.process_task(wo, 7, 42, IMAGES, _args())
+    assert "commit" in wo.calls
+    assert "remove_task" not in wo.calls
+
+
+def test_failure_before_commit_removes_orphan():
+    wo = FakeWebODM(fail_on="detect")
+    with pytest.raises(RuntimeError):
+        sp.process_task(wo, 7, 42, IMAGES, _args())
+    assert wo.calls.count("remove_task") == 1
+    assert "commit" not in wo.calls
+
+
+def test_commit_in_flight_failure_keeps_task():
+    # The core of finding #1: a lost response *during* commit must NOT delete a
+    # task the server may already have started.
+    wo = FakeWebODM(fail_on="commit")
+    with pytest.raises(RuntimeError):
+        sp.process_task(wo, 7, 42, IMAGES, _args())
+    assert "commit" in wo.calls
+    assert "remove_task" not in wo.calls
+
+
+def test_keep_on_error_skips_cleanup():
+    wo = FakeWebODM(fail_on="detect")
+    with pytest.raises(RuntimeError):
+        sp.process_task(wo, 7, 42, IMAGES, _args(keep_on_error=True))
+    assert "remove_task" not in wo.calls
+
+
+def test_dry_run_stops_before_commit_and_keeps_task():
+    wo = FakeWebODM()
+    sp.process_task(wo, 7, 42, IMAGES, _args(dry_run=True))
+    assert "commit" not in wo.calls
+    assert "remove_task" not in wo.calls
+
+
+def test_empty_gcp_list_is_treated_as_failure():
+    wo = FakeWebODM(summary={"detections": 0, "unique_markers": 0,
+                             "weak_markers": [], "gcp_list": ""})
+    with pytest.raises(RuntimeError):
+        sp.process_task(wo, 7, 42, IMAGES, _args())
+    assert wo.calls.count("remove_task") == 1

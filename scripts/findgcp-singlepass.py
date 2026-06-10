@@ -294,10 +294,21 @@ def main():
     task_id = wo.create_partial_task(project_id, name=args.name, options=options, node=args.node)
     log("task {} (partial)".format(task_id))
 
-    # From here on the task exists on the server. If any step fails, remove it
-    # so the run does not leave a half-built partial task orphaned in the
-    # project (override with --keep-on-error for debugging). A --dry-run that
-    # reaches the end keeps the task on purpose; a clean commit keeps it too.
+    process_task(wo, project_id, task_id, images, args)
+
+
+def process_task(wo, project_id, task_id, images, args):
+    """Attach GCP to an existing partial task via detection, then commit.
+
+    Cleanup contract (covered by tests/test_singlepass.py):
+      * any failure *before* commit removes the partial task, so the run does
+        not leave a half-built orphan in the project — unless --keep-on-error;
+      * once commit is in flight the task is *kept* even on failure, because the
+        server may already have started processing (a lost response / Ctrl-C
+        must not delete a started task); a genuinely rejected commit leaves a
+        recoverable partial task instead;
+      * --dry-run stops before commit and keeps the prepared (uncommitted) task.
+    """
     keep = False
     try:
         log("uploading {} images ...".format(len(images)))
@@ -329,8 +340,12 @@ def main():
             return
 
         log("committing — processing starts WITH the GCP ...")
-        wo.commit(project_id, task_id)
+        # Mark the task as kept BEFORE issuing commit: once the request is in
+        # flight the server may have already started processing, so a lost
+        # response or Ctrl-C during commit must not delete a started task. A
+        # genuinely rejected commit leaves a recoverable partial task instead.
         keep = True
+        wo.commit(project_id, task_id)
         log("done. Task {} is processing with georeferencing.".format(task_id))
         log("  {}/dashboard/?project_task_open={}".format(args.url, task_id))
     except BaseException:

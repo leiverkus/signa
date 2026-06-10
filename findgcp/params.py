@@ -8,6 +8,11 @@ surfaces them to the client as JSON.
 # Predefined OpenCV ArUco dictionary ids span 0..20; 99 is Find-GCP's custom 3x3.
 VALID_DICTS = set(range(0, 21)) | {99}
 
+# Hard floor for minrate. The UI/docs say "never below 0.005"; below it the
+# detector accepts tiny perimeters and produces a flood of false positives, so
+# the API enforces the same limit the settings form and help texts state.
+MIN_MINRATE = 0.005
+
 
 def validate_params(data):
     """Validate detection parameters.
@@ -36,8 +41,9 @@ def validate_params(data):
     except (TypeError, ValueError):
         return None, 'Invalid detection parameters.'
     # NaN fails both comparisons, so these bounds reject nan/inf too.
-    if not (0.0 < minrate <= 1.0):
-        return None, 'minrate must be in the range (0, 1].'
+    if not (MIN_MINRATE <= minrate <= 1.0):
+        return None, ('minrate must be in the range [{}, 1] — values below {} '
+                      'cause excessive false positives.'.format(MIN_MINRATE, MIN_MINRATE))
     if not (0.0 <= ignore < 1.0):
         return None, 'ignore must be in the range [0, 1).'
 

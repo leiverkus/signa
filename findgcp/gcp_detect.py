@@ -111,6 +111,27 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
             coords[marker_id] = (parts[1], parts[2], parts[3])
         return coords, skipped, duplicates
 
+    def declared_epsgs(text):
+        """CRS code(s) the coordinate file declares about itself.
+
+        Scans comment (``#``) lines for ``EPSG:xxxx`` tokens (the header the
+        fixture and the workflow docs write, e.g. ``# id easting northing
+        elevation  (EPSG:28191)``). Returns the sorted list of distinct 4-6
+        digit codes found — empty if none. Only comment lines are scanned, so a
+        data row never trips this. The caller decides: zero = nothing to check,
+        one = validate against the run, several = ambiguous (an error, since a
+        contradictory header is stronger evidence of a config problem than none).
+        """
+        import re
+        found = set()
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line.startswith('#'):
+                continue
+            for m in re.finditer(r'EPSG[:\s]*([0-9]{4,6})', line, re.IGNORECASE):
+                found.add(int(m.group(1)))
+        return sorted(found)
+
     def build_dictionary(dict_id):
         if int(dict_id) == 99:
             if hasattr(aruco, 'extendDictionary'):
@@ -135,6 +156,26 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
         return {'error': 'No valid GCP coordinates parsed '
                          '(expected per line: id easting northing elevation; '
                          'id must be an integer, coordinates finite numbers).'}
+
+    # --- guard against the wrong CRS (silent-but-deadly georeferencing error) ---
+    # The server otherwise only range-checks the EPSG number and writes it through
+    # verbatim, so e.g. EPSG:28191 mistakenly chosen for ITM coordinates would
+    # produce a plausible-looking but wrong georeference. If the coordinate file
+    # declares its own CRS, validate it: a single declared code must match the
+    # run; several conflicting codes are an outright error (a contradictory
+    # header is stronger evidence of a config problem than no header at all, so
+    # we fail closed rather than skip the check).
+    file_epsgs = declared_epsgs(coords_text)
+    if len(file_epsgs) > 1:
+        return {'error': 'Ambiguous CRS: the coordinate file declares conflicting '
+                         'EPSG codes {}. Remove the contradictory header(s) so the '
+                         'coordinate CRS is unambiguous, then re-run.'.format(file_epsgs)}
+    if len(file_epsgs) == 1 and file_epsgs[0] != int(epsg):
+        return {'error': 'CRS mismatch: the coordinate file declares '
+                         'EPSG:{} but this run is set to EPSG:{}. Fix the EPSG '
+                         'field (or the file header) so they agree — this guards '
+                         'against georeferencing with the wrong CRS.'.format(
+                             file_epsgs[0], int(epsg))}
 
     # --- detector setup ---
     try:

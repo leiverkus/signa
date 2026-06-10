@@ -131,6 +131,54 @@ def test_odm_output_format(install_cv2):
     assert res["output"]["unique_markers"] == 1
 
 
+def test_crs_mismatch_in_file_header_errors(install_cv2):
+    # the coordinate file declares EPSG:2039 but the run is set to 28191
+    install_cv2({"a.JPG": [(5, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, epsg=28191, image_paths=["/x/a.JPG"],
+              coords_text="# id easting northing elevation  (EPSG:2039)\n5 100 200 30\n")
+    assert "error" in res
+    assert "2039" in res["error"] and "28191" in res["error"]
+
+
+def test_crs_header_matching_runs(install_cv2):
+    install_cv2({"a.JPG": [(5, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, epsg=2039, image_paths=["/x/a.JPG"],
+              coords_text="# (EPSG:2039)\n5 100 200 30\n")
+    assert "error" not in res, res
+    assert res["output"]["gcp_list"].splitlines()[0] == "EPSG:2039"
+
+
+def test_crs_header_absent_is_not_validated(install_cv2):
+    # no declared CRS in the file -> we cannot validate, so detection proceeds
+    install_cv2({"a.JPG": [(5, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, epsg=28191, image_paths=["/x/a.JPG"],
+              coords_text="5 100 200 30\n")
+    assert "error" not in res, res
+
+
+def test_crs_header_conflicting_errors(install_cv2):
+    # two different EPSG tokens in comments -> ambiguous: a contradictory header
+    # is stronger evidence of a config problem than none, so fail closed.
+    install_cv2({"a.JPG": [(5, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, epsg=28191, image_paths=["/x/a.JPG"],
+              coords_text="# EPSG:2039 or maybe EPSG:32636\n5 100 200 30\n")
+    assert "error" in res
+    assert "2039" in res["error"] and "32636" in res["error"]
+
+
+def test_crs_header_repeated_same_code_is_fine(install_cv2):
+    # the SAME code repeated is not a conflict -> still a single declared CRS
+    install_cv2({"a.JPG": [(5, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, epsg=2039, image_paths=["/x/a.JPG"],
+              coords_text="# EPSG:2039\n# again EPSG:2039\n5 100 200 30\n")
+    assert "error" not in res, res
+
+
 def test_rejects_non_integer_id(install_cv2):
     install_cv2({"a.JPG": [(1, SQUARE)]})
     detect = load_detect_source_fn()

@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-11
+
+Robustness fixes from a second code review. The version bump also re-busts the
+`load_buttons.js` cache (it doubles as the script's `?v=` query), so browsers
+re-fetch the updated dashboard script.
+
+### Fixed
+- **CRS mismatches are now caught instead of silently georeferencing wrong.** If
+  the coordinate file declares its own CRS in a comment (e.g. `# … (EPSG:2039)`),
+  detection refuses to run when that disagrees with the chosen EPSG, rather than
+  writing the wrong code through verbatim. A file that declares *several
+  conflicting* EPSG codes is also rejected (fail closed — a contradictory header
+  is stronger evidence of a config problem than no header). Files without a
+  declared CRS are unaffected.
+- **`minrate` now enforces its documented 0.005 floor.** The API and the
+  settings form rejected values far below the "never below 0.005" guidance
+  (down to `0.0001` / any value > 0), which invited massive false positives.
+  Both now clamp to `[0.005, 1]`.
+- **The Find-GCP page no longer leaves scratch projects behind.** A `pagehide`
+  handler removes the scratch project (keepalive DELETE) if the tab is closed or
+  navigated away mid-run, and `cleanup()` now surfaces a failed delete instead of
+  treating any HTTP error as success. A failed cleanup is tracked in a separate
+  pending-list (so a new run can't overwrite and lose the orphan id), retried at
+  the start of the next run and on unload, and shown as a UI notice listing the
+  affected project id(s) — not console-only.
+- **A lost response during `commit` no longer deletes an already-started task.**
+  Both the dashboard dialog and `scripts/findgcp-singlepass.py` now mark the task
+  as kept *before* issuing the commit request, so a network drop or cancel while
+  the commit is in flight (where the server may already have started processing)
+  leaves the task intact instead of cleaning it up. A genuinely rejected commit
+  leaves a recoverable partial task rather than destroying a running one.
+
+### Docs
+- `docs/manual-test.md`: the single-host automatic OpenCV path (2a) is now
+  verified live end to end (plugin 1.1.1) — auto-installed `site-packages`,
+  worker `cv2.aruco`, and a full detection run matching the fixture.
+- Completed the changelog compare links (they previously stopped at `0.2.0`;
+  `1.0.0`–`1.1.1` were missing).
+
 ## [1.1.1] - 2026-06-10
 
 Robustness fixes from a code review (no behaviour change to a successful run).
@@ -270,6 +309,17 @@ Initial WebODM plugin.
   Actions workflow to publish a release on a `v*` tag.
 - Standalone Bash CLI retained under `standalone/`.
 
-[Unreleased]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.3...v1.0.0
+[0.6.3]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.2...v0.6.3
+[0.6.2]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/releases/tag/v0.1.0

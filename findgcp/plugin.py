@@ -19,7 +19,7 @@ class FindGCPSettingsForm(forms.Form):
     dict_id = forms.ChoiceField(label=_l("ArUco dictionary"),
                                 choices=[("1", "1 — DICT_4X4_100"), ("99", "99 — custom 3×3")])
     minrate = forms.FloatField(
-        label=_l("minrate"), min_value=0.0001, max_value=1.0,
+        label=_l("minrate"), min_value=0.005, max_value=1.0,
         help_text=_l("Minimum relative marker size. Lower it step by step (0.01 → 0.008 → 0.005) if markers are missed — never below 0.005. Markers should be at least 20×20 px in the image."))
     ignore = forms.FloatField(
         label=_l("ignore"), min_value=0.0, max_value=0.99,

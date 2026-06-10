@@ -92,6 +92,57 @@
     return fetch(url, {method:"DELETE", credentials:"same-origin", headers:{"X-CSRFToken":csrfToken()}});
   }
 
+  // The scratch project the *current* run created (null when none is in flight),
+  // tracked at this scope so the unload handler can remove it on tab close.
+  var scratchProjectId = null;
+  // Ids whose delete failed earlier. Kept separately so a *new* run setting
+  // scratchProjectId can never overwrite (and thus lose) an unfinished cleanup;
+  // these are retried at the start of each run and on unload.
+  var pendingCleanup = [];
+
+  function rememberOrphan(pid, status){
+    if (pendingCleanup.indexOf(pid) === -1) pendingCleanup.push(pid);
+    if (window.console){
+      console.warn("Find-GCP: scratch project " + pid + " could not be deleted (HTTP " +
+                   status + ") — will retry on the next run, or remove it manually.");
+    }
+  }
+
+  // Best-effort retry of earlier failed cleanups (called at the start of a run).
+  function flushPendingCleanup(){
+    pendingCleanup.slice().forEach(function(pid){
+      del("/api/projects/" + pid + "/").then(function(r){
+        if (r && r.ok){
+          var i = pendingCleanup.indexOf(pid);
+          if (i > -1) pendingCleanup.splice(i, 1);
+        }
+      }, function(){ /* still unreachable; keep it for the next attempt */ });
+    });
+  }
+
+  // A translatable UI note listing any scratch projects that could not be
+  // removed automatically, so the failure is visible — not console-only.
+  function cleanupNoticeHtml(){
+    if (!pendingCleanup.length) return "";
+    return '<p class="warn"><i class="fa fa-exclamation-triangle"></i> ' +
+      "{% trans 'A temporary project could not be removed automatically — please delete it manually in the project list. Affected id(s):' %} " +
+      pendingCleanup.join(", ") + '</p>';
+  }
+
+  window.addEventListener("pagehide", function(){
+    var ids = pendingCleanup.slice();
+    if (scratchProjectId) ids.push(scratchProjectId);
+    ids.forEach(function(pid){
+      try {
+        // keepalive lets the DELETE outlive the unloading page (best effort).
+        fetch("/api/projects/" + pid + "/", {
+          method:"DELETE", credentials:"same-origin", keepalive:true,
+          headers:{"X-CSRFToken":csrfToken()}
+        });
+      } catch (e) { /* best effort on unload */ }
+    });
+  });
+
   // ----- image selection (drop + click) -----
   var selectedImages = [];
   function setImages(fileList){
@@ -182,16 +233,28 @@
     if (!$("coords").files.length){ setStatus("{% trans 'Please choose a coordinate file.' %}", "error"); return; }
     $("result").style.display = "none";
     $("run").disabled = true;
+    // Retry any earlier cleanup that failed before we start a new run.
+    flushPendingCleanup();
 
-    var projectId = null;
-    function cleanup(){ return projectId ? del("/api/projects/" + projectId + "/").catch(function(){}) : Promise.resolve(); }
+    // cleanup deletes this run's scratch project. It releases ownership of the
+    // id up front (so a later run can't overwrite an in-progress cleanup) and,
+    // on a failed delete, records the id as an orphan for retry + a UI notice —
+    // an HTTP error is never treated as success.
+    function cleanup(){
+      var pid = scratchProjectId;
+      scratchProjectId = null;
+      if (!pid) return Promise.resolve();
+      return del("/api/projects/" + pid + "/").then(function(r){
+        if (!(r && r.ok)){ rememberOrphan(pid, r && r.status); }
+      }, function(){ rememberOrphan(pid, "request failed"); });
+    }
 
     setStatus('<i class="fa fa-spinner fa-spin"></i> {% trans "Preparing…" %}');
     var pfd = new FormData(); pfd.append("name", "Find-GCP detection (scratch)");
     postMultipart("/api/projects/", pfd).then(function(p){
-      projectId = p.id;
+      scratchProjectId = p.id;
       var tfd = new FormData(); tfd.append("partial", "true"); tfd.append("name", "findgcp-detect");
-      return postMultipart("/api/projects/" + projectId + "/tasks/", tfd);
+      return postMultipart("/api/projects/" + scratchProjectId + "/tasks/", tfd);
     }).then(function(task){
       var taskId = task.id;
       var chain = Promise.resolve();
@@ -199,7 +262,7 @@
         chain = chain.then(function(){
           setStatus('<i class="fa fa-spinner fa-spin"></i> {% trans "Uploading images…" %} ' + (i+1) + "/" + selectedImages.length);
           var fd = new FormData(); fd.append("images", file, file.name);
-          return postMultipart("/api/projects/" + projectId + "/tasks/" + taskId + "/upload/", fd);
+          return postMultipart("/api/projects/" + scratchProjectId + "/tasks/" + taskId + "/upload/", fd);
         });
       });
       return chain.then(function(){
@@ -221,10 +284,11 @@
         $("status").style.display = "none";
         $("run").disabled = false;
         renderSummary(summary);
+        if (pendingCleanup.length){ $("result").innerHTML += cleanupNoticeHtml(); }
       });
     }).catch(function(e){
       cleanup().then(function(){
-        setStatus('<i class="fa fa-exclamation-triangle"></i> ' + e.message, "error");
+        setStatus('<i class="fa fa-exclamation-triangle"></i> ' + e.message + cleanupNoticeHtml(), "error");
         $("run").disabled = false;
       });
     });

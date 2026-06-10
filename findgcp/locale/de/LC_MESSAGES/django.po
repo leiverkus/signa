@@ -15,6 +15,14 @@ msgstr ""
 msgid "Find-GCP — ArUco GCP detection"
 msgstr "Find-GCP — ArUco-GCP-Erkennung"
 
+#: templates/app.html
+msgid ""
+"A temporary project could not be removed automatically — please delete it "
+"manually in the project list. Affected id(s):"
+msgstr ""
+"Ein temporäres Projekt konnte nicht automatisch entfernt werden — bitte "
+"löschen Sie es manuell in der Projektliste. Betroffene ID(s):"
+
 #: templates/app.html (blocktrans)
 msgid "Drop drone images and a GCP coordinate file, run automatic ArUco detection, and download an ODM-compatible <code>gcp_list.txt</code>. A scratch task is created on the server for the detection and deleted again afterwards — nothing is processed."
 msgstr "Drohnenbilder und eine GCP-Koordinatendatei ablegen, automatische ArUco-Erkennung starten und eine ODM-kompatible <code>gcp_list.txt</code> herunterladen. Für die Erkennung wird auf dem Server ein temporärer Task angelegt und anschließend wieder gelöscht — es wird nichts prozessiert."
@@ -212,8 +220,12 @@ msgid "Invalid detection parameters."
 msgstr "Ungültige Erkennungsparameter."
 
 #: params.py
-msgid "minrate must be in the range (0, 1]."
-msgstr "minrate muss im Bereich (0, 1] liegen."
+msgid ""
+"minrate must be in the range [0.005, 1] — values below 0.005 cause excessive "
+"false positives."
+msgstr ""
+"minrate muss im Bereich [0.005, 1] liegen — Werte unter 0.005 führen zu "
+"massenhaften Fehltreffern."
 
 #: params.py
 msgid "ignore must be in the range [0, 1)."

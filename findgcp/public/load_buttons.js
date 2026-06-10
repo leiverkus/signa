@@ -289,9 +289,14 @@
         }).then(function () {
             ck();
             status('<i class="fa fa-spinner fa-spin"></i> ' + tr("Starting processing…"));
+            // Mark committed BEFORE issuing the request: once commit is in
+            // flight the server may have already started the task, so a lost
+            // response or a cancel during commit must not delete it. A genuinely
+            // failed commit leaves a recoverable partial task rather than
+            // destroying a started one.
+            state.committed = true;
             return postForm(base + state.taskId + "/commit/", {}, sig);
         }).then(function () {
-            state.committed = true;   // past this point the task is the wanted result, not an orphan
             return state.taskId;
         });
     }

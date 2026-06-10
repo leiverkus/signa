@@ -38,7 +38,11 @@ site-packages on enable. That path is on the media volume the `webapp` and
 `worker` containers **share**, so the worker imports `cv2` from it (the
 detection code adds the path to `sys.path` as a fallback). `numpy` already ships
 with WebODM and is reused. So on a standard single-host install, just install
-the plugin and **restart the web app** — no manual step.
+the plugin and **restart the web app** — no manual step. (One exception: if the
+worker process has *already* imported a base `opencv-python` without the
+`aruco` contrib module, the shared-volume copy can't replace it — OpenCV's
+bootstrap is not re-entrant — and detection returns the clear "fix the worker
+image" error instead. Use the worker image below for that setup.)
 
 **Distributed / server — use the worker image (robust).** If the worker runs on
 a different host without the shared media volume, the above can't reach it. Bake
@@ -78,7 +82,8 @@ GCP interface, but automatic):
 1. Open **Find-GCP** from the menu.
 2. **Drop drone images** (or click to choose) and select the **GCP coordinate
    file** — one marker per line: `id easting northing elevation` (whitespace or
-   comma separated).
+   comma separated). Optionally declare the CRS in a comment (`# … (EPSG:28191)`)
+   to catch a wrong EPSG choice — see [below](#declare-the-coordinate-crs-in-the-file-recommended).
 3. Set the parameters (see below) and click **Detect GCPs**.
 4. Review the summary (markers, image counts, warnings) and **download
    `gcp_list.txt`**.
@@ -95,9 +100,31 @@ in one run): see [Single-pass](#single-pass-detect-before-processing) below.
 |-------|--------------------|---------|-------|
 | EPSG | `--epsg` | `28191` | target CRS of the coordinates; written as the `gcp_list.txt` header |
 | ArUco dictionary | `-d` | `1` (DICT_4X4_100) | `99` = custom 3×3 |
-| minrate | `--minrate` → `minMarkerPerimeterRate` | `0.01` | lower to detect smaller markers (don't go below ~0.005) |
+| minrate | `--minrate` → `minMarkerPerimeterRate` | `0.01` | lower to detect smaller markers (enforced floor `0.005`) |
 | ignore | `--ignore` → `perspectiveRemoveIgnoredMarginPerCell` | `0.33` | burnt-in protection for strong sunlight |
 | Color adjustment | `--adjust` | on | LUT correction against overexposure |
+
+#### Declare the coordinate CRS in the file (recommended)
+
+A wrong EPSG is a silent error: the codes are plausible numbers in the same
+range, so an ITM file (EPSG:2039) accidentally run as `28191` georeferences
+cleanly but in the wrong place. To guard against this, **add the CRS to the
+coordinate file as a comment** — any `EPSG:xxxx` token in a `#` line is read:
+
+```
+# id easting northing elevation  (EPSG:28191)
+1 698000.0 3540000.0 410.0
+2 698050.0 3540000.0 411.0
+```
+
+When the file declares a single CRS, detection **refuses to run** if it
+disagrees with the chosen EPSG, with a clear "CRS mismatch" error — instead of
+producing a plausible but wrong georeference. A file that declares **several
+conflicting** EPSG codes is also rejected (a contradictory header is stronger
+evidence of a mistake than none, so it fails closed). A file with **no** header
+is not blocked, so the comment is optional but strongly recommended. Only `#`
+comment lines are scanned; data rows never trip it. (The fixture generator
+already writes this header.)
 
 > Always measure GCP coordinates in the target CRS (or reproject beforehand) —
 > WebODM does not reproject them. The image EXIF (WGS84) may differ; ODX
@@ -127,6 +154,19 @@ Detect the GCPs and feed them into the **same** processing run:
 
 Both detect server-side (the worker needs OpenCV — see Worker image
 requirement) and produce a georeferenced model in one pass.
+
+### Partial-task cleanup
+
+The single-pass flow creates a *partial* task first, then uploads, detects and
+commits. If a step fails — or you cancel — the partial task is removed so it
+doesn't linger in the project. A known limitation: if the **create** request is
+processed server-side but its response is lost (a network drop right after the
+task is created), the client never learns the task id and cannot clean it up, so
+a stray partial task can remain. Delete it manually from the project if that
+happens. (Once *commit* is in flight the task is kept on purpose — the server
+may already have started it — so a lost response there never deletes a started
+run.) A fully race-proof create would need a server-side idempotency key, which
+WebODM does not currently offer.
 
 ## Plugin layout
 

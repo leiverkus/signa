@@ -36,7 +36,8 @@ PYTHON_MSGIDS = [
     "Invalid ArUco dictionary id.",
     "Unsupported ArUco dictionary id (use 0-20 or 99).",
     "Invalid detection parameters.",
-    "minrate must be in the range (0, 1].",
+    "minrate must be in the range [0.005, 1] — values below 0.005 cause "
+    "excessive false positives.",
     "ignore must be in the range [0, 1).",
 ]
 

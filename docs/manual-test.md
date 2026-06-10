@@ -20,10 +20,26 @@ byte-for-byte identical (sorted) to the fixture's `expected_gcp_list.txt`
   plugin.
 - OpenCV was provided to the worker transiently (`docker exec worker pip install
   opencv-contrib-python-headless==4.10.0.84`) for the run. That run **predates**
-  the self-contained auto-install (plugin 1.1.0, section 2a), so the automatic
-  path has **not yet been exercised end to end live** — verify it per the
-  checklist there. For a durable distributed setup, the `docker/` worker image
-  (section 2b) remains the robust path.
+  the self-contained auto-install (plugin 1.1.0, section 2a). For a durable
+  distributed setup, the `docker/` worker image (section 2b) remains the robust
+  path.
+
+**Self-contained auto-install — 2026-06-10, plugin 1.1.1: PASSED end to end.**
+After a WebODM-Manager update reset the media volume to a clean state (the
+`findgcp` plugin AND its `site-packages` gone; `cv2` absent in both `worker` and
+`webapp`), re-uploading `dist/findgcp-1.1.1.zip`, enabling it and `docker
+restart webapp` re-created `<MEDIA_ROOT>/plugins/findgcp/site-packages` with
+`opencv_contrib_python_headless 4.10.0.84` + `numpy 2.0.2`. With that directory
+on `sys.path` (as `detect_gcps` adds it), the worker imports `cv2 4.10.0` and
+`cv2.aruco` cleanly. A full UI detection run (section 6) then ran on this
+**auto-installed** cv2 with no manual `pip install`: 24 detections / 5 markers,
+and the downloaded `gcp_list.txt` was byte-for-byte identical (sorted) to
+`expected_gcp_list.txt` for every coordinate line — the only diff was the
+`EPSG:` header, because the run used EPSG 6991 instead of the fixture's default
+28191 (a UI choice, written through verbatim — not a bug). Note: a bare `docker
+exec worker python -c "import cv2"` (without the site-packages path) still fails
+— expected, since the path is injected at runtime by the detection code, not
+added to the worker's base environment.
 
 ## 0. Prerequisites
 
@@ -52,15 +68,20 @@ Nothing to build. The plugin ships a `requirements.txt`; WebODM installs OpenCV
 into the plugin's per-plugin site-packages on enable. That directory lives on
 the media volume the `webapp` and `worker` containers **share**, and the
 detection code adds it to `sys.path`. So just install + enable the plugin
-(section 3) and `docker restart webapp` — no manual step.
+(section 3) and `docker restart webapp` — no manual step. The one case this
+path does *not* cover: a worker that has already imported a base `opencv-python`
+**without** the `aruco` contrib — OpenCV's bootstrap is not re-entrant, so the
+site-packages copy can't replace it and detection returns the clear worker-image
+error instead. Use 2b for that setup.
 
-- [ ] **To verify live — not yet exercised end to end.** Starting from a clean
-      worker (`docker compose exec worker python -c "import cv2"` →
-      `ModuleNotFoundError`), install + enable the plugin, `docker restart
-      webapp`, then run detection (section 6) and confirm it succeeds **without**
-      any manual `pip install`. Check that
-      `<MEDIA_ROOT>/plugins/findgcp/site-packages` exists and contains a `cv2*`
-      package.
+- [x] **Verified live end to end — 2026-06-10, plugin 1.1.1** (see header
+      note). Starting from a clean worker (`import cv2` → `ModuleNotFoundError`,
+      no `site-packages`), install + enable the plugin and `docker restart
+      webapp` re-created `<MEDIA_ROOT>/plugins/findgcp/site-packages` with a
+      `cv2*` package (opencv-contrib 4.10.0.84); the worker imports `cv2` +
+      `cv2.aruco` via that path with **no** manual `pip install`, and a full
+      detection run (section 6) on that auto-installed cv2 produced the expected
+      `gcp_list.txt`.
 
 ### 2b. Distributed / robust — bake it into the worker image
 
@@ -113,6 +134,8 @@ python tests/fixtures/make_aruco_fixture.py
 - [ ] Open **Find-GCP**, select the project and the task.
 - [ ] Upload `tests/fixtures/dataset/gcp_coords.txt`.
 - [ ] Leave defaults (EPSG 28191, dict 1, minrate 0.01, ignore 0.33, adjust on).
+      The fixture file declares `(EPSG:28191)` in its header, so the EPSG **must**
+      stay 28191 — the CRS guard rejects a mismatching choice (see step 6a).
 - [ ] Click **Detect GCPs**. The status shows progress, then a summary.
 
 Expected summary:
@@ -126,6 +149,17 @@ Expected summary:
   ```
 
   - [ ] Only ordering may differ; sorted contents are identical.
+
+### 6a. Verify the CRS guard
+
+The coordinate file declares its CRS in a comment (`# … (EPSG:28191)`); a
+detection whose EPSG disagrees must be refused, not silently georeferenced wrong.
+
+- [ ] Re-run detection with the **EPSG field set to a different code** (e.g.
+      `2039`), leaving the same `gcp_coords.txt`.
+- [ ] Detection is rejected with a clear **"CRS mismatch … declares EPSG:28191
+      but this run is set to EPSG:2039"** error — no `gcp_list.txt` is produced.
+- [ ] Set EPSG back to 28191 and confirm it runs again.
 
 ## 7. Verify the warnings UI (finding #1)
 
@@ -154,6 +188,26 @@ garbage line           # malformed
       a run (403/Not found).
 - [ ] Polling `/api/plugins/findgcp/task/<task_id>/check/<celery_id>` as a
       **different** user returns `{"ready": true, "error": "Result not found."}`.
+
+## 8a. Verify scratch-project cleanup (incl. a failed DELETE)
+
+The Find-GCP page runs detection on a throwaway scratch project and deletes it
+afterwards. The delete path (and its failure handling) has no browser-automated
+test, so check it here once.
+
+- [ ] **Happy path:** run a detection from the Find-GCP page, then confirm in the
+      project list that **no** `Find-GCP detection (scratch)` project lingers.
+- [ ] **Simulated DELETE failure:** in DevTools, block the delete request
+      (Network → request blocking for `DELETE /api/projects/*`, or set the tab
+      offline right as the summary appears), then run a detection.
+  - [ ] The result still renders, **plus** a UI notice: *"A temporary project
+        could not be removed automatically … Affected id(s): &lt;n&gt;"*.
+  - [ ] A `console.warn` names the same project id.
+- [ ] **Retry on next run:** remove the block and start another detection; the
+      previously stranded scratch project is deleted (pending-cleanup flush) and
+      the notice no longer lists it.
+- [ ] **Unload cleanup:** start a run and close the tab mid-run; the scratch
+      project is removed shortly after (keepalive DELETE on `pagehide`).
 
 ## 9. Cleanup
 
