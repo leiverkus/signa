@@ -309,17 +309,17 @@ Initial WebODM plugin.
   Actions workflow to publish a release on a `v*` tag.
 - Standalone Bash CLI retained under `standalone/`.
 
-[Unreleased]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.1.2...HEAD
-[1.1.2]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.3...v1.0.0
-[0.6.3]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.2...v0.6.3
-[0.6.2]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.1...v0.6.2
-[0.6.1]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.6.0...v0.6.1
-[0.6.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/leiverkus/Find-GCP-WebODM-Workflow/releases/tag/v0.1.0
+[Unreleased]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.3...v1.0.0
+[0.6.3]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.2...v0.6.3
+[0.6.2]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/releases/tag/v0.1.0

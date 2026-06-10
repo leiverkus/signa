@@ -6,9 +6,9 @@
     "author": "Patrick Leiverkus",
     "email": "leiverkus@gmail.com",
     "license": "MIT",
-    "repository": "https://github.com/leiverkus/Find-GCP-WebODM-Workflow",
+    "repository": "https://github.com/leiverkus/find-gcp-webodm-plugin",
     "tags": ["gcp", "aruco", "photogrammetry"],
-    "homepage": "https://github.com/leiverkus/Find-GCP-WebODM-Workflow",
+    "homepage": "https://github.com/leiverkus/find-gcp-webodm-plugin",
     "experimental": false,
     "deprecated": false
 }

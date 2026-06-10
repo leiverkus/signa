@@ -14,7 +14,7 @@ optionally upload via the API) is kept under [`standalone/`](standalone/).
 ## Install in WebODM
 
 1. Download `findgcp-<version>.zip` from the
-   [Releases](https://github.com/leiverkus/Find-GCP-WebODM-Workflow/releases) page.
+   [Releases](https://github.com/leiverkus/find-gcp-webodm-plugin/releases) page.
 2. In WebODM: **Administration → Plugins → Load Plugin (.zip)** and upload the zip.
 3. Enable the plugin. A **Find-GCP** entry appears in the main menu.
 4. **Restart the web app** after every install or update
