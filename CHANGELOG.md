@@ -9,6 +9,27 @@ and behaviour may change between minor releases.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-10
+
+Single-pass workflow: detect GCPs **before** the (only) processing run, so a
+georeferenced model is produced in one pass instead of process → detect →
+reprocess. Grounded in WebODM's verified `partial → upload → commit` task API
+(see `docs/single-pass-design.md`).
+
+### Added
+- **"Find-GCP task" dashboard button** (`findgcp/public/load_buttons.js`, via
+  `PluginsAPI.Dashboard.addNewTaskButton`): a second new-task entry point that
+  opens a dialog (images + coordinate file + params) and runs the single-pass
+  flow in the browser — `create(partial) → upload → detect → upload(gcp_list) →
+  commit`. Build-free (plain `React.createElement` + a vanilla dialog; no
+  JSX/webpack). Live-verified end to end against WebODM 3.2.4.
+- **Headless single-pass script** (`scripts/findgcp-singlepass.py`, stdlib only):
+  the same sequence for automation. Server-side detection via the plugin (no
+  local OpenCV). `--dry-run` stops before commit. Uses a Django session +
+  `X-CSRFToken` (the plugin API is not csrf_exempt, so JWT alone is rejected).
+- `docs/single-pass-design.md` and the open-question resolutions from the live
+  runs (an uploaded `gcp_list.txt` is recognized as the task GCP).
+
 ## [0.2.0] - 2026-06-10
 
 Hardening release after three internal reviews, verified end to end against a

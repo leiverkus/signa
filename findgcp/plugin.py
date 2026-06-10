@@ -10,6 +10,11 @@ class Plugin(PluginBase):
     def main_menu(self):
         return [Menu(_("Find-GCP"), self.public_url(""), "fa fa-map-marker-alt fa-fw")]
 
+    def include_js_files(self):
+        # Loaded into the dashboard; registers the "Find-GCP task" button that
+        # runs the single-pass workflow (see public/load_buttons.js).
+        return ['load_buttons.js']
+
     def app_mount_points(self):
         @login_required
         def index(request):

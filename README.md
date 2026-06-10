@@ -84,17 +84,46 @@ Open **Find-GCP** from the menu, then:
 > WebODM does not reproject them. The image EXIF (WGS84) may differ; ODX
 > reprojects the EXIF internally.
 
+The **Find-GCP** menu page detects GCPs on a task that already exists — useful
+for QA and for producing a `gcp_list.txt`. Because GCPs are an input to ODM's
+reconstruction (not a post-hoc transform), applying them to an *already
+processed* task means reprocessing. To georeference in **one** run, use the
+single-pass entry points below.
+
+### Single-pass (detect before processing)
+
+Detect the GCPs and feed them into the **same** processing run:
+
+- **Dashboard button** — next to *Select Images and GCP*, a **Find-GCP Task**
+  button opens a dialog (images + coordinate file + params) and does
+  `create → upload → detect → attach gcp_list → start processing` for you.
+- **Script** — [`scripts/findgcp-singlepass.py`](scripts/findgcp-singlepass.py)
+  does the same headless, for automation:
+
+  ```bash
+  WEBODM_PASS=… scripts/findgcp-singlepass.py --url http://localhost:8000 \
+    --user me --create-project "site-2026" \
+    --images ./raw --coords ./gcp_coords.txt --epsg 28191 [--dry-run]
+  ```
+
+Both detect server-side (the worker needs OpenCV — see Worker image
+requirement) and produce a georeferenced model in one pass.
+
 ## Plugin layout
 
 ```
 findgcp/                  # ← single root dir required by WebODM's plugin loader
 ├── __init__.py
 ├── manifest.json         # name, version, webodmMinVersion, …
-├── plugin.py             # Plugin(PluginBase): menu, app + API mount points
+├── plugin.py             # Plugin(PluginBase): menu, app + API mount points, JS
 ├── api.py                # detect + check endpoints (DRF TaskView), auth-gated
+├── params.py             # Django-free parameter validation (unit-tested)
 ├── gcp_detect.py         # ported ArUco detection — self-contained for the worker
-├── templates/app.html    # UI (vanilla JS + fetch, no JSX build)
-└── public/               # style.css, icon.svg
+├── templates/app.html    # the Find-GCP menu page (vanilla JS + fetch)
+└── public/
+    ├── load_buttons.js   # "Find-GCP task" dashboard button (single-pass)
+    ├── style.css
+    └── icon.svg
 ```
 
 This mirrors WebODM's core-plugin conventions (cf. `coreplugins/contours`,
@@ -115,7 +144,7 @@ as a single root folder, and verifies the archive structure.
 zip and publish a GitHub Release with the archive attached:
 
 ```bash
-git tag v0.2.0 && git push origin v0.2.0
+git tag v0.3.0 && git push origin v0.3.0
 ```
 
 See [`.github/workflows/release.yml`](.github/workflows/release.yml). CI

@@ -2,7 +2,7 @@
     "name": "Find-GCP",
     "webodmMinVersion": "2.9.5",
     "description": "Automatic ArUco ground control point detection. Detects ArUco markers in a task's images, matches them against measured GCP coordinates and produces an ODM-compatible gcp_list.txt.",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "author": "Patrick Leiverkus",
     "email": "leiverkus@gmail.com",
     "license": "MIT",
