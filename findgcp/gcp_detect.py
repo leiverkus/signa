@@ -25,10 +25,43 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
     created — the gcp_list text travels back in the result.
     """
     import os
+    import sys
     import math
 
     import numpy as np
-    import cv2
+
+    # OpenCV must be importable in this (Celery worker) process. Two supported
+    # ways, tried in order:
+    #   1. cv2 is in the worker image — the robust path (see the docker/ dir).
+    #   2. self-contained single-host: WebODM installs the plugin's
+    #      requirements.txt into <MEDIA_ROOT>/plugins/findgcp/site-packages, on
+    #      the media volume shared with this worker. We add that to sys.path and
+    #      retry. numpy is already loaded by WebODM, so cv2 reuses it.
+    # If both fail (e.g. a distributed worker without the shared volume), return
+    # a clear error pointing to the durable docker/ image.
+    try:
+        import cv2
+    except ImportError:
+        site_packages = []
+        try:
+            from django.conf import settings as _dj
+            site_packages.append(os.path.join(_dj.MEDIA_ROOT, "plugins", "findgcp", "site-packages"))
+        except Exception:
+            pass
+        site_packages.append("/webodm/app/media/plugins/findgcp/site-packages")
+        for _sp in site_packages:
+            if os.path.isdir(_sp) and _sp not in sys.path:
+                sys.path.insert(0, _sp)
+        try:
+            import cv2
+        except ImportError:
+            return {'error': "OpenCV (cv2) is not available in the worker. On a "
+                             "single-host WebODM it is installed automatically when "
+                             "the plugin is enabled (after a webapp restart); on a "
+                             "distributed/server setup, add it to the worker image "
+                             "(see the plugin's docker/ directory) or run: "
+                             "docker exec worker pip install "
+                             "opencv-contrib-python-headless"}
     from cv2 import aruco
 
     # --- Find-GCP color LUT for --adjust (gcp_find.py LUT_IN / LUT_OUT) ---

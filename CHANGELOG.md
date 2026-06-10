@@ -9,6 +9,25 @@ and behaviour may change between minor releases.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-10
+
+### Added
+- **Self-contained OpenCV for single-host setups.** The plugin ships a
+  `requirements.txt` again; WebODM installs OpenCV into the plugin's per-plugin
+  site-packages on enable, which lives on the media volume shared by the
+  `webapp` and `worker` containers. `detect_gcps` imports `cv2` normally first
+  (so a worker image with OpenCV still wins) and falls back to that shared
+  site-packages path (resolved via `settings.MEDIA_ROOT`) — so a standard
+  single-host install needs **no manual `pip install`**: install the plugin,
+  restart the web app, done.
+- If `cv2` still can't be imported (e.g. a distributed worker without the shared
+  volume), detection now returns a **clear error** pointing to the `docker/`
+  worker image instead of a cryptic `ModuleNotFoundError`.
+
+### Notes
+- The `docker/` worker image remains the **robust path for distributed/server
+  deployments** and is documented as such (README "OpenCV in the worker").
+
 ## [1.0.0] - 2026-06-10
 
 First stable release. Cleared the `experimental` flag in the manifest — the

@@ -27,32 +27,35 @@ optionally upload via the API) is kept under [`standalone/`](standalone/).
    old module don't inject its JavaScript). A restart re-imports the plugin in
    every worker. After restarting, hard-refresh the browser once.
 
-### Worker image requirement (important)
+### OpenCV in the worker
 
-Detection runs in the **Celery worker** via WebODM's `run_function_async`
-(`eval_async`), which compiles the function source in a bare namespace in the
-worker process. The plugin therefore does **not** ship a `requirements.txt`: a
-web-side install would not reach the worker and would only waste space and time.
+Detection runs in the **Celery worker**, which needs `cv2` (OpenCV). There are
+two paths; the plugin tries both.
 
-**OpenCV must be present in the worker image.** In WebODM's compose the `worker`
-and `webapp` services share one image (`webodm/webodm_webapp`), so the fix is a
-thin image that extends it with `opencv-contrib-python-headless` and is used for
-both services. `numpy` already ships with WebODM; OpenCV does not. Without it,
-runs fail with `ModuleNotFoundError: No module named 'cv2'`.
+**Single-host WebODM — automatic, nothing to do.** The plugin ships a
+`requirements.txt`; WebODM installs OpenCV into the plugin's per-plugin
+site-packages on enable. That path is on the media volume the `webapp` and
+`worker` containers **share**, so the worker imports `cv2` from it (the
+detection code adds the path to `sys.path` as a fallback). `numpy` already ships
+with WebODM and is reused. So on a standard single-host install, just install
+the plugin and **restart the web app** — no manual step.
 
-Ready-made files are in [`docker/`](docker/) — a `worker.Dockerfile` and a
-compose override, with step-by-step instructions in
-[`docker/README.md`](docker/README.md). In short:
+**Distributed / server — use the worker image (robust).** If the worker runs on
+a different host without the shared media volume, the above can't reach it. Bake
+OpenCV into the image instead. In WebODM's compose the `worker` and `webapp`
+share one image (`webodm/webodm_webapp`); extend it and use it for both:
 
 ```bash
-docker build -t webodm-findgcp:0.2.0 \
+docker build -t webodm-findgcp:1.0.0 \
   --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
   -f docker/worker.Dockerfile docker/
 # then add docker/docker-compose.findgcp.yml as a final -f to your compose command
 ```
 
-Pin `WEBODM_VERSION` to your WebODM image tag (no `latest`) so the worker runs
-the same code as the rest of the stack.
+Ready-made files and steps are in [`docker/`](docker/) /
+[`docker/README.md`](docker/README.md). Pin `WEBODM_VERSION` to your WebODM
+image tag (no `latest`). If `cv2` is missing, detection returns a clear error
+pointing here rather than failing cryptically.
 
 ### Permissions
 
@@ -134,6 +137,7 @@ findgcp/                  # ← single root dir required by WebODM's plugin load
 ├── plugin.py             # Plugin(PluginBase): menu, app + API mount points, JS
 ├── api.py                # detect + check endpoints (DRF TaskView), auth-gated
 ├── params.py             # Django-free parameter validation (unit-tested)
+├── requirements.txt      # OpenCV for the worker (single-host auto-install)
 ├── gcp_detect.py         # ported ArUco detection — self-contained for the worker
 ├── templates/
 │   ├── app.html          # standalone detection tool (drop images → download gcp_list)

@@ -194,6 +194,19 @@ def test_dict_99_uses_custom(install_cv2):
     assert "error" not in res
 
 
+def test_missing_cv2_returns_friendly_error(monkeypatch):
+    """When cv2 can't be imported (and no shared site-packages exists), detect
+    returns a clear error pointing to docker/ — not a raw ImportError."""
+    # Setting sys.modules['cv2'] = None makes `import cv2` raise ImportError,
+    # even in an environment that has OpenCV installed.
+    monkeypatch.setitem(sys.modules, "cv2", None)
+    monkeypatch.setitem(sys.modules, "cv2.aruco", None)
+    detect = load_detect_source_fn()
+    res = run(detect, image_paths=["/x/a.JPG"], coords_text="5 1 2 3")
+    assert "error" in res
+    assert "cv2" in res["error"] and "docker/" in res["error"]
+
+
 def test_legacy_aruco_api(monkeypatch):
     """No ArucoDetector attribute -> fall back to aruco.detectMarkers()."""
     cv2, aruco = make_cv2({"a.JPG": [(5, SQUARE)]})
