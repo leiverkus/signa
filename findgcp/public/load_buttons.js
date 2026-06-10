@@ -86,13 +86,15 @@
                     '<input type="file" data-coords accept=".txt,.csv,text/plain">' +
                     '<p class="help-block">id easting northing elevation (whitespace or comma separated).</p></div>' +
                   '<div class="row">' +
-                    '<div class="col-sm-3 form-group"><label>EPSG</label>' +
+                    '<div class="col-sm-6 form-group"><label>EPSG (target CRS)</label>' +
                       '<input type="number" class="form-control" data-epsg value="28191"></div>' +
-                    '<div class="col-sm-3 form-group"><label>Dictionary</label>' +
-                      '<select class="form-control" data-dict><option value="1" selected>1 — 4x4_100</option><option value="99">99 — 3x3</option></select></div>' +
-                    '<div class="col-sm-3 form-group"><label>minrate</label>' +
+                    '<div class="col-sm-6 form-group"><label>ArUco dictionary</label>' +
+                      '<select class="form-control" data-dict><option value="1" selected>1 — DICT_4X4_100</option><option value="99">99 — custom 3×3</option></select></div>' +
+                  '</div>' +
+                  '<div class="row">' +
+                    '<div class="col-sm-6 form-group"><label>minrate</label>' +
                       '<input type="number" step="0.001" min="0.005" class="form-control" data-minrate value="0.01"></div>' +
-                    '<div class="col-sm-3 form-group"><label>ignore</label>' +
+                    '<div class="col-sm-6 form-group"><label>ignore</label>' +
                       '<input type="number" step="0.01" min="0" max="0.99" class="form-control" data-ignore value="0.33"></div>' +
                   '</div>' +
                   '<div class="checkbox"><label><input type="checkbox" data-adjust checked> Color adjustment (strong sunlight)</label></div>' +
