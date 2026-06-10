@@ -28,6 +28,21 @@ def _last_key(task_id):
     return "last:{}".format(task_id)
 
 
+# Per-user detection defaults (settable on the Find-GCP Settings page). Stored in
+# the same per-user datastore as the run bindings (distinct "default_*" keys).
+DEFAULTS = {'epsg': 28191, 'dict': 1, 'minrate': 0.01, 'ignore': 0.33, 'adjust': True}
+
+
+def read_user_defaults(store):
+    return {
+        'epsg': store.get_int('default_epsg', DEFAULTS['epsg']),
+        'dict': store.get_int('default_dict', DEFAULTS['dict']),
+        'minrate': store.get_float('default_minrate', DEFAULTS['minrate']),
+        'ignore': store.get_float('default_ignore', DEFAULTS['ignore']),
+        'adjust': store.get_bool('default_adjust', DEFAULTS['adjust']),
+    }
+
+
 class TaskFindGCPDetect(TaskView):
     """Start ArUco GCP detection for a task's images in a background worker.
 
@@ -146,3 +161,13 @@ class TaskFindGCPCheck(APIView):
             return Response({'ready': True, 'error': result['error']})
 
         return Response({'ready': True, 'summary': result.get('output')})
+
+
+class FindGCPSettings(APIView):
+    """Return the requesting user's saved detection defaults (used by the
+    dashboard dialog to pre-fill its fields)."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, **kwargs):
+        store = UserDataStore(PLUGIN_NAMESPACE, request.user)
+        return Response(read_user_defaults(store))

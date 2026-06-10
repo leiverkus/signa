@@ -52,6 +52,11 @@
   background: #f3f3f3;
 }
 .findgcp .status.error { background: #f8d7da; color: #842029; }
+.findgcp .status.ok { background: #d4edda; color: #155724; }
+
+.findgcp .field-error { color: #b94a48; margin-top: 4px; font-size: 0.9em; }
+.findgcp-settings .cb { font-weight: 400; }
+.findgcp-settings .cb input { margin-right: 6px; width: auto; }
 
 .findgcp .result { margin-top: 22px; }
 .findgcp .result ul { padding-left: 18px; }

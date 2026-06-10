@@ -9,6 +9,16 @@ and behaviour may change between minor releases.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-10
+
+### Added
+- **Find-GCP Settings page** (new menu entry): set the default detection
+  parameters (EPSG, ArUco dictionary, minrate, ignore, color adjustment) per
+  user. Saved in the plugin's per-user datastore. Both detection UIs pre-fill
+  from these defaults — the Find-GCP page (server-rendered) and the dashboard
+  **Find-GCP Task** dialog (via a new `GET /api/plugins/findgcp/settings`
+  endpoint). Values can still be overridden per run.
+
 ## [0.4.0] - 2026-06-10
 
 ### Changed

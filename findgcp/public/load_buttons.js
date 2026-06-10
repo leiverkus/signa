@@ -149,6 +149,15 @@
 
         document.body.appendChild(backdrop);
         document.body.appendChild(modal);
+
+        // Pre-fill the params from the user's saved defaults (best-effort).
+        getJson("/api/plugins/findgcp/settings").then(function (s) {
+            if (s.epsg != null) q("[data-epsg]").value = s.epsg;
+            if (s.dict != null) q("[data-dict]").value = s.dict;
+            if (s.minrate != null) q("[data-minrate]").value = s.minrate;
+            if (s.ignore != null) q("[data-ignore]").value = s.ignore;
+            if (s.adjust != null) q("[data-adjust]").checked = !!s.adjust;
+        }).catch(function () {});
     }
 
     function runSinglePass(projectId, images, coordsFile, params, name, status) {

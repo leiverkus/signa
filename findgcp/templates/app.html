@@ -32,27 +32,27 @@
     <div class="grid">
       <div class="row">
         <label>{% trans "EPSG (target CRS)" %}</label>
-        <input type="number" id="epsg" value="28191">
+        <input type="number" id="epsg" value="{{ defaults.epsg }}">
       </div>
       <div class="row">
         <label>{% trans "ArUco dictionary" %}</label>
         <select id="dict">
-          <option value="1" selected>1 — DICT_4X4_100</option>
-          <option value="99">99 — custom 3×3</option>
+          <option value="1" {% if defaults.dict == 1 %}selected{% endif %}>1 — DICT_4X4_100</option>
+          <option value="99" {% if defaults.dict == 99 %}selected{% endif %}>99 — custom 3×3</option>
         </select>
       </div>
       <div class="row">
         <label>{% trans "minrate" %}</label>
-        <input type="number" id="minrate" value="0.01" step="0.001" min="0.005">
+        <input type="number" id="minrate" value="{{ defaults.minrate }}" step="0.001" min="0.005">
       </div>
       <div class="row">
         <label>{% trans "ignore" %}</label>
-        <input type="number" id="ignore" value="0.33" step="0.01" min="0" max="0.99">
+        <input type="number" id="ignore" value="{{ defaults.ignore }}" step="0.01" min="0" max="0.99">
       </div>
     </div>
 
     <div class="row checkbox">
-      <label><input type="checkbox" id="adjust" checked> {% trans "Color adjustment (recommended for strong sunlight)" %}</label>
+      <label><input type="checkbox" id="adjust" {% if defaults.adjust %}checked{% endif %}> {% trans "Color adjustment (recommended for strong sunlight)" %}</label>
     </div>
 
     <div class="row">

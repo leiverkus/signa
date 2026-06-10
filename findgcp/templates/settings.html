@@ -1,0 +1,39 @@
+{% extends "app/plugins/templates/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<link rel="stylesheet" type="text/css" href="style.css?v=3">
+
+<div class="findgcp findgcp-settings">
+  <h2><i class="fa fa-cog"></i> {% trans "Find-GCP — default settings" %}</h2>
+  <p class="help">
+    {% blocktrans %}These values pre-fill the detection parameters on the Find-GCP page and in the
+    dashboard <strong>Find-GCP Task</strong> dialog. They are saved per user — you can still
+    override them per run.{% endblocktrans %}
+  </p>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="status ok"><i class="fa fa-check"></i> {{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="row">
+        {% if field.name == "adjust" %}
+          <label class="cb">{{ field }} {{ field.label }}</label>
+        {% else %}
+          <label>{{ field.label }}</label>
+          {{ field }}
+        {% endif %}
+        {% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="row">
+      <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> {% trans "Save defaults" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
