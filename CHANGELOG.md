@@ -62,6 +62,12 @@ issues; not yet verified against a live WebODM instance.
 - Extracted parameter validation into a Django-free `params.py` and added 13
   unit tests for it (range/type/`nan` checks, dictionary whitelist, `adjust`
   parsing) — the API permission/run-binding logic still needs a live WebODM.
+- Real-OpenCV integration test (`test_integration_opencv.py`) that renders
+  actual ArUco markers and runs detection end to end (skipped when `cv2` is
+  absent; CI installs it). Backed by a synthetic-fixture generator
+  (`tests/fixtures/make_aruco_fixture.py`).
+- `docs/manual-test.md`: a live-WebODM end-to-end checklist (loader, worker
+  `cv2`, permissions, warnings UI) built around the synthetic fixture.
 
 ### Changed
 - Reproducible Docker build: `worker.Dockerfile` defaults `WEBODM_VERSION` to a

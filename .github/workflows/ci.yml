@@ -36,9 +36,9 @@ jobs:
         run: python3 -c "import json; m=json.load(open('findgcp/manifest.json')); assert m['name'] and m['version']; print('manifest ok:', m['name'], m['version'])"
 
       - name: Install test deps
-        run: pip install "numpy>=1.23,<3" pytest
+        run: pip install "numpy>=1.23,<3" "opencv-contrib-python-headless==4.10.0.84" pytest
 
-      - name: Run unit tests
+      - name: Run unit + real-OpenCV integration tests
         run: python -m pytest tests/ -q
 
   build:

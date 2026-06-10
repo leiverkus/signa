@@ -112,6 +112,9 @@ Thumbs.db
 # === Build output ===
 dist/
 
+# === Generated test fixture dataset (rendered by make_aruco_fixture.py) ===
+tests/fixtures/dataset/
+
 # === Backups & archives ===
 *.zip
 *.tar

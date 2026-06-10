@@ -123,15 +123,24 @@ Python compile-check, the unit tests and a test build on every push/PR.
 ## Tests
 
 ```bash
-pip install "numpy>=1.23,<3" pytest
+pip install "numpy>=1.23,<3" "opencv-contrib-python-headless==4.10.0.84" pytest
 python -m pytest tests/ -q
 ```
 
-OpenCV is mocked, so the suite needs no `cv2`. The key test
-(`test_self_contained_under_worker_eval`) reproduces WebODM's worker execution
-model — it takes `detect_gcps` *by source*, compiles it in an empty namespace
-and calls it — so a regression to module-level helpers (which would raise
-`NameError` only in the live worker) fails in CI instead.
+- **Unit tests** (`test_gcp_detect.py`, `test_params.py`) mock OpenCV. The key
+  one (`test_self_contained_under_worker_eval`) reproduces WebODM's worker model
+  — it takes `detect_gcps` *by source*, compiles it in an empty namespace and
+  calls it — so a regression to module-level helpers (which would raise
+  `NameError` only in the live worker) fails in CI instead.
+- **Integration test** (`test_integration_opencv.py`) renders real ArUco markers
+  and runs detection end to end; it is skipped automatically if `cv2` is absent
+  (CI installs it). It uses the fixture generator
+  [`tests/fixtures/make_aruco_fixture.py`](tests/fixtures/make_aruco_fixture.py),
+  which can also produce a standalone synthetic dataset for manual testing.
+
+For the **live WebODM** path (plugin loader, worker `cv2`, permissions, UI) see
+[`docs/manual-test.md`](docs/manual-test.md) — a checklist that uses the
+synthetic fixture, so no drone flight is needed.
 
 ## Standalone CLI (alternative)
 
