@@ -1,14 +1,14 @@
 # .claudeignore
 # ----------------------------------------------------------------------
-# Verhindert, dass Claude Code grosse Binaries, Roh-Daten und
-# generierte Outputs in den Kontext laedt. Spart Tokens, beschleunigt
-# Sessions, schuetzt sensible Felddaten.
+# Prevents Claude Code from loading large binaries, raw data and
+# generated outputs into context. Saves tokens, speeds up sessions,
+# protects sensitive field data.
 #
-# Syntax: gitignore-kompatibel.
+# Syntax: gitignore-compatible.
 # ----------------------------------------------------------------------
 
-# === Drohnen-Rohbilder & Felddaten ===
-# Niemals in den Kontext laden - 20-60 MB pro Datei, 100s-1000s pro Site
+# === Raw drone images & field data ===
+# Never load into context - 20-60 MB per file, 100s-1000s per site
 fieldwork/*/raw/
 fieldwork/**/raw/
 **/raw/
@@ -28,8 +28,8 @@ fieldwork/**/raw/
 *.tiff
 *.TIFF
 
-# === Photogrammetrie-Outputs ===
-# Orthomosaike, DEMs, Punktwolken, Mesh - alle gross und reproduzierbar
+# === Photogrammetry outputs ===
+# Orthomosaics, DEMs, point clouds, mesh - all large and reproducible
 *.las
 *.laz
 *.ply
@@ -49,11 +49,11 @@ fieldwork/**/raw/
 **/cameras.json
 **/reconstruction.json
 
-# === WebODM/ODX-bereit-Ordner (Symlinks reichen, aber Inhalte nicht ===
+# === WebODM/ODX-ready folder (symlinks are enough, not their contents) ===
 fieldwork/*/processed/webodm_ready/images/
 **/webodm_ready/images/
 
-# === GIS/Geodatenformate ===
+# === GIS / geodata formats ===
 *.gpkg
 *.gpkg-journal
 *.gpkg-wal
@@ -72,18 +72,18 @@ fieldwork/*/processed/webodm_ready/images/
 *.aux.xml
 *.ovr
 
-# Ausnahme: Beispiel-/Test-Geometrien dürfen rein, wenn sie klein sind
+# Exception: sample/test geometries are allowed if small
 !samples/*.gpkg
 !tests/fixtures/*.geojson
 
-# === Logs & Reports ===
-# Logs sind selten relevant für Claude Code; bei Bedarf gezielt anhaengen
+# === Logs & reports ===
+# Logs are rarely relevant for Claude Code; attach explicitly if needed
 *.log
 findgcp_*.log
 fieldwork/*/processed/*.log
 gcp_report.txt
 
-# === Python-Artefakte ===
+# === Python artifacts ===
 __pycache__/
 *.py[cod]
 *$py.class
@@ -100,13 +100,13 @@ ENV/
 build/
 dist/
 
-# === Node/JS (falls Web-Komponenten dazukommen) ===
+# === Node/JS (in case web components are added) ===
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# === IDE & Editor ===
+# === IDE & editor ===
 .vscode/
 .idea/
 *.swp
@@ -116,14 +116,14 @@ yarn-error.log*
 Thumbs.db
 desktop.ini
 
-# === Docker/Container-Volumes ===
+# === Docker / container volumes ===
 .docker/
 docker-data/
 postgres-data/
 qgis-server-data/
 
-# === Secrets & Credentials ===
-# Niemals in den Kontext - selbst wenn versehentlich committed
+# === Secrets & credentials ===
+# Never load into context - even if accidentally committed
 *.env
 .env*
 !.env.example
@@ -136,8 +136,7 @@ credentials/
 *_token*
 .netrc
 
-# === DistoField-spezifisch ===
-# Flutter-Build-Artefakte, falls DistoField-Repo eingebunden ist
+# === Flutter/Dart build artifacts (if a companion app repo is embedded) ===
 **/.dart_tool/
 **/.flutter-plugins
 **/.flutter-plugins-dependencies
@@ -145,19 +144,19 @@ credentials/
 **/ios/Pods/
 **/android/.gradle/
 
-# === QGIS-Projektdateien (gross, oft binaer-aehnlich) ===
+# === QGIS project files (large, binary-ish) ===
 *.qgz
 *.qgs~
-# Ausnahme: schlanke Projektdefinitionen erlauben
+# Exception: allow lean project definitions
 !project.qgs
 
-# === Bibliographie-Roh-PDFs ===
-# RIS/BibTeX dürfen rein, PDFs nicht (Copyright, Groesse)
+# === Raw bibliography PDFs ===
+# RIS/BibTeX allowed, PDFs not (copyright, size)
 literature/**/*.pdf
 references/**/*.pdf
 zotero_storage/
 
-# === Backups & Archive ===
+# === Backups & archives ===
 *.zip
 *.tar
 *.tar.gz
@@ -167,14 +166,14 @@ zotero_storage/
 *.old
 *~
 
-# === Temporaere Dateien ===
+# === Temporary files ===
 tmp/
 temp/
 .cache/
 *.tmp
 
-# === Was IMMER im Kontext bleiben darf ===
-# (gitignore-Negationen am Ende, damit sie greifen)
+# === Always keep in context ===
+# (gitignore negations at the end so they take effect)
 !CLAUDE.md
 !README.md
 !*.md

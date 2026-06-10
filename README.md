@@ -1,138 +1,139 @@
 # Find-GCP → WebODM Workflow
 
-Automatisierter Workflow zur Bearbeitung archäologischer Drohnenbefliegungen:
-ArUco-GCP-Detektion mit [Find-GCP](https://github.com/zsiki/Find-GCP),
-Aufbereitung für [WebODM](https://docs.webodm.org) (Engine: ODX) und Integration
-in den Solearis-Stack (PostGIS / GeoDjango / QFieldCloud). Entwickelt für
-Südlevante-Sites (Israel / Jordanien / Westbank), u. a. Tall Zira'a.
+Automated workflow for processing archaeological drone surveys: ArUco GCP
+detection with [Find-GCP](https://github.com/zsiki/Find-GCP), preparation for
+[WebODM](https://docs.webodm.org) (ODX engine), and integration into a
+PostGIS / GeoDjango / QFieldCloud stack. Built for survey sites with
+GNSS-measured ground control.
 
-Das Herzstück ist ein einziges Bash-Skript, [`findgcp-webodm.sh`](findgcp-webodm.sh),
-das die folgende Pipeline kapselt:
+The core is a single Bash script, [`findgcp-webodm.sh`](findgcp-webodm.sh),
+that wraps the following pipeline:
 
-1. **Detektion** — ArUco-Marker in den Bildern finden (`gcp_find.py`)
-2. **Report** — Sanity-Check: welche GCP auf wie vielen Bildern, Warnungen
-3. **Check** *(optional)* — visuelle Prüfung via `gcp_check.py`
-4. **Prep** *(optional)* — WebODM-bereite Ordnerstruktur (Bilder als Symlinks)
-5. **Upload** *(optional)* — direkter Task-Upload via WebODM-API
+1. **Detection** — find ArUco markers in the images (`gcp_find.py`)
+2. **Report** — sanity check: which GCP on how many images, warnings
+3. **Check** *(optional)* — visual review via `gcp_check.py`
+4. **Prep** *(optional)* — WebODM-ready folder structure (images as symlinks)
+5. **Upload** *(optional)* — direct task upload via the WebODM API
 
-## Voraussetzungen
+## Requirements
 
 - **Bash** 4+
-- **Python** 3.10+ mit OpenCV inkl. ArUco-Contrib:
+- **Python** 3.10+ with OpenCV incl. ArUco contrib:
   ```bash
   pip install opencv-python opencv-contrib-python
   ```
-- **Find-GCP** lokal ausgecheckt (Default-Pfad: `~/src/Find-GCP`):
+- **Find-GCP** checked out locally (default path: `~/src/Find-GCP`):
   ```bash
   git clone https://github.com/zsiki/Find-GCP ~/src/Find-GCP
   ```
-- `jq` und `curl` — nur für den optionalen `--upload`-Schritt
+- `jq` and `curl` — only for the optional `--upload` step
 
-## Schnellstart
+## Quick start
 
 ```bash
-# Einfacher Run mit Levante-Default (EPSG:28191, 4x4-Marker)
+# Simple run with the regional default (EPSG:28191, 4x4 markers)
 ./findgcp-webodm.sh \
   -i ~/fieldwork/zira2026/raw \
   -c gcp_coords.txt \
   -o ~/fieldwork/zira2026/processed
 ```
 
-Die GCP-Koordinatendatei hat das Format `id easting northing elevation` und
-muss **bereits im Ziel-CRS** vorliegen — WebODM rechnet nichts um (siehe unten).
+The GCP coordinate file uses the format `id easting northing elevation` and
+must **already be in the target CRS** — WebODM does not reproject anything
+(see below).
 
-## Optionen
+## Options
 
-| Flag | Beschreibung | Default |
-|------|--------------|---------|
-| `-i, --images DIR` | Verzeichnis mit Drohnenbildern *(Pflicht)* | — |
-| `-c, --coords FILE` | GCP-Koordinatendatei *(Pflicht)* | — |
-| `-o, --output DIR` | Output-Verzeichnis *(Pflicht)* | — |
-| `-e, --epsg CODE` | EPSG-Code der GCP-Koordinaten | `28191` |
-| `-d, --dict ID` | ArUco-Dictionary (1 = 4x4_100, 99 = 3x3 custom) | `1` |
-| `-p, --pattern GLOB` | Bilddatei-Glob | `*.JPG` |
-| `--minrate VAL` | min. relative Markergröße | `0.01` |
-| `--ignore VAL` | Pixel-Ignore-Rate (Burnt-in-Schutz) | `0.33` |
-| `--no-adjust` | Color-Adjustment deaktivieren | aktiv |
-| `--findgcp-dir DIR` | Pfad zur Find-GCP-Installation | `~/src/Find-GCP` |
-| `--check` | `gcp_check.py`-GUI nach der Detektion | aus |
-| `--prep` | WebODM-bereite Ordnerstruktur erzeugen | aus |
-| `--upload` | via WebODM-API hochladen | aus |
-| `--webodm-url / --webodm-user / --webodm-pass / --project` | Upload-Parameter | — |
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-i, --images DIR` | directory with drone images *(required)* | — |
+| `-c, --coords FILE` | GCP coordinate file *(required)* | — |
+| `-o, --output DIR` | output directory *(required)* | — |
+| `-e, --epsg CODE` | EPSG code of the GCP coordinates | `28191` |
+| `-d, --dict ID` | ArUco dictionary (1 = 4x4_100, 99 = 3x3 custom) | `1` |
+| `-p, --pattern GLOB` | image file glob | `*.JPG` |
+| `--minrate VAL` | min. relative marker size | `0.01` |
+| `--ignore VAL` | pixel ignore rate (burnt-in protection) | `0.33` |
+| `--no-adjust` | disable color adjustment | on |
+| `--findgcp-dir DIR` | path to the Find-GCP installation | `~/src/Find-GCP` |
+| `--check` | `gcp_check.py` GUI after detection | off |
+| `--prep` | build a WebODM-ready folder structure | off |
+| `--upload` | upload via the WebODM API | off |
+| `--webodm-url / --webodm-user / --webodm-pass / --project` | upload parameters | — |
 
-Vollständige Hilfe: `./findgcp-webodm.sh --help`.
+Full help: `./findgcp-webodm.sh --help`.
 
-### Beispiele
+### Examples
 
 ```bash
-# 3x3-Custom-Marker, kleinere Mindestgröße
-./findgcp-webodm.sh -i ./bilder -c gcps.txt -o ./out -d 99 --minrate 0.01
+# 3x3 custom markers, smaller minimum size
+./findgcp-webodm.sh -i ./images -c gcps.txt -o ./out -d 99 --minrate 0.01
 
-# ITM (israelisches Standard-CRS) statt Palestine Belt
-./findgcp-webodm.sh -i ./bilder -c gcps.txt -o ./out -e 2039
+# ITM (Israeli standard CRS) instead of Palestine Belt
+./findgcp-webodm.sh -i ./images -c gcps.txt -o ./out -e 2039
 
-# Komplette Pipeline inkl. Upload
-WEBODM_PASS=geheim ./findgcp-webodm.sh -i ./bilder -c gcps.txt -o ./out \
+# Full pipeline including upload
+WEBODM_PASS=secret ./findgcp-webodm.sh -i ./images -c gcps.txt -o ./out \
   --prep --upload --webodm-url http://192.168.1.10:8000 \
-  --webodm-user patrick --project "TallZiraa-Area3-2026"
+  --webodm-user user --project "Site-Area3-2026"
 ```
 
-## Koordinatensysteme
+## Coordinate reference systems
 
-GCP-Koordinaten **immer** im Ziel-CRS einmessen oder vorab transformieren — nie
-WebODM die Umrechnung machen lassen. Bilder-EXIF (WGS84) und GCP-CRS dürfen
-verschieden sein, ODX rechnet das EXIF intern um.
+Always measure GCP coordinates in the target CRS, or reproject them beforehand —
+never let WebODM do the conversion. The image EXIF (WGS84) and the GCP CRS may
+differ; ODX reprojects the EXIF internally.
 
-| EPSG | Name | Wann? |
+| EPSG | Name | When? |
 |------|------|-------|
-| `28191` | Palestine 1923 / Palestine Belt | Solearis-Default, Westbank, Jerusalem |
-| `2039`  | Israeli Transverse Mercator (ITM) | modernes IL-Standard-CRS |
-| `32636` | UTM Zone 36N | generisch Israel |
-| `32637` | UTM Zone 37N | Jordanien (Tall Zira'a, Khirbet Hamra Ifdan, Amman) |
-| `4326`  | WGS84 geographisch | nur als Eingabe-CRS aus EXIF-GPS |
+| `28191` | Palestine 1923 / Palestine Belt | regional default, West Bank, Jerusalem |
+| `2039`  | Israeli Transverse Mercator (ITM) | modern Israeli standard CRS |
+| `32636` | UTM zone 36N | generic Israel |
+| `32637` | UTM zone 37N | Jordan |
+| `4326`  | WGS84 geographic | only as input CRS from EXIF GPS |
 
-## Output-Struktur
+## Output structure
 
 ```
 <output>/
-├── gcp_list.txt              # ODM-kompatibles GCP-File (Find-GCP-Output)
-├── gcp_report.txt            # Sanity-Report
+├── gcp_list.txt              # ODM-compatible GCP file (Find-GCP output)
+├── gcp_report.txt            # sanity report
 ├── findgcp_<timestamp>.log
-└── webodm_ready/             # nur bei --prep
-    ├── images/               # Symlinks (spart Platz bei 1000+ Bildern)
+└── webodm_ready/             # only with --prep
+    ├── images/               # symlinks (saves space on 1000+ images)
     ├── gcp_list.txt
-    └── README_webodm.md      # empfohlene WebODM-Task-Optionen
+    └── README_webodm.md      # recommended WebODM task options
 ```
 
-## Bekannte Stolperstellen
+## Known pitfalls
 
-- **Levante-Sonne**: Default `--ignore 0.33` ist auf starkes Sommerlicht
-  ausgelegt; ggf. graue statt weiße Marker drucken.
-- **DJI-EXIF-Höhen** sind relativ zum Take-off, nicht absolut — für den
-  Bündelblock okay, aber nicht für direkte DEM-Validierung gegen GCP-Höhen.
-- **`gcp_check.py` braucht X11/Display** — auf headless Servern via `ssh -X`
-  oder `--check` weglassen.
-- **WebODM ODX ≠ ODM**: seit 04/2026 entkoppelt; es werden die
-  `webodm/odx`-Container genutzt, nicht `opendronemap/*`.
+- **Strong sunlight**: the default `--ignore 0.33` is tuned for harsh summer
+  light; consider printing gray markers instead of white.
+- **DJI EXIF altitudes** are relative to take-off, not absolute — fine for the
+  bundle block, but not for direct DEM validation against GCP heights.
+- **`gcp_check.py` needs X11/display** — on headless servers use `ssh -X` or
+  omit `--check`.
+- **WebODM ODX ≠ ODM**: decoupled since 04/2026; uses the `webodm/odx`
+  containers, not `opendronemap/*`.
 
-## Entwicklung
+## Development
 
 ```bash
-bash -n findgcp-webodm.sh   # Syntax-Check
+bash -n findgcp-webodm.sh   # syntax check
 shellcheck findgcp-webodm.sh
 ```
 
-CI führt `shellcheck` automatisch aus (siehe
+CI runs `shellcheck` automatically (see
 [`.github/workflows/shellcheck.yml`](.github/workflows/shellcheck.yml)).
 
-## Lizenz
+## License
 
 [MIT](LICENSE) © 2026 Patrick Leiverkus
 
-## Referenzen
+## References
 
 - Find-GCP: <https://github.com/zsiki/Find-GCP>
-- WebODM Docs: <https://docs.webodm.org>
-- ArUco-Detektor-Parameter: <https://docs.opencv.org/trunk/d5/dae/tutorial_aruco_detection.html>
+- WebODM docs: <https://docs.webodm.org>
+- ArUco detector parameters: <https://docs.opencv.org/trunk/d5/dae/tutorial_aruco_detection.html>
 - Siki 2021, *Baltic Journal of Modern Computing*:
   <https://www.bjmc.lu.lv/fileadmin/user_upload/lu_portal/projekti/bjmc/Contents/9_1_06_Siki.pdf>
