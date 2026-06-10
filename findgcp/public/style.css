@@ -31,16 +31,15 @@
   padding: 6px 8px;
   box-sizing: border-box;
 }
-.findgcp .grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 18px;
-}
-/* min-width:0 + minmax(0,1fr) stop grid items from overflowing their column;
-   constrain inputs AND selects to the cell so EPSG can't slide under the dict. */
-.findgcp .grid .row { min-width: 0; }
-.findgcp .grid input,
-.findgcp .grid select { width: 100%; max-width: 100%; box-sizing: border-box; }
+/* Two columns without relying on CSS-grid `gap` (which some setups drop, making
+   the columns touch and look overlapped). Flex items at width:50% with inner
+   padding guarantee the gap; box-sizing keeps everything inside the column. */
+.findgcp .grid { display: flex; flex-wrap: wrap; }
+.findgcp .grid > .row { width: 50%; min-width: 0; box-sizing: border-box; }
+.findgcp .grid > .row:nth-child(odd) { padding-right: 9px; }
+.findgcp .grid > .row:nth-child(even) { padding-left: 9px; }
+.findgcp .grid > .row input,
+.findgcp .grid > .row select { width: 100%; max-width: 100%; box-sizing: border-box; }
 .findgcp .checkbox label { font-weight: 400; }
 .findgcp .checkbox input { width: auto; margin-right: 6px; }
 .findgcp button { margin-top: 8px; }
