@@ -10,16 +10,18 @@
 #
 # numpy already ships with WebODM, so we only add OpenCV (headless = no GUI/X11).
 #
-# IMPORTANT — reproducibility: pin WEBODM_VERSION to the EXACT tag your WebODM
-# runs, so the worker executes the same code as the rest of the stack. Do not
-# ship `latest` to production.
+# IMPORTANT — reproducibility: override WEBODM_VERSION to match the EXACT tag
+# your WebODM runs, so the worker executes the same code as the rest of the
+# stack. The default below is a concrete published tag (not `latest`); both the
+# base image and OpenCV are pinned exactly so a build without arguments cannot
+# drift. Published webapp tags include 3.2.0 … 3.2.4.
 #
 # Build:
 #   docker build -t webodm-findgcp:0.2.0 \
 #     --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
 #     -f docker/worker.Dockerfile docker/
 
-ARG WEBODM_VERSION=latest
+ARG WEBODM_VERSION=3.2.4
 FROM webodm/webodm_webapp:${WEBODM_VERSION}
 
-RUN pip install --no-cache-dir "opencv-contrib-python-headless~=4.10"
+RUN pip install --no-cache-dir "opencv-contrib-python-headless==4.10.0.84"

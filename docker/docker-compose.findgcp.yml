@@ -20,8 +20,10 @@
 #    `docker-compose -f ...` command (see its `command=` near line 431). Either
 #    run compose manually as above, or add `-f docker-compose.findgcp.yml` to
 #    that command (copy this file into the WebODM directory first).
+#
+# No top-level `version:` key — it is obsolete in Compose v2 and merges fine
+# without it (modern docker compose warns when it is present).
 
-version: '2.1'
 services:
   webapp:
     image: webodm-findgcp:0.2.0

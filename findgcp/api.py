@@ -10,9 +10,7 @@ from app.api.common import check_project_perms
 from worker.tasks import TestSafeAsyncResult
 
 from .gcp_detect import detect_gcps
-
-# Predefined OpenCV ArUco dictionary ids span 0..20; 99 is Find-GCP's custom 3x3.
-VALID_DICTS = set(range(0, 21)) | {99}
+from .params import validate_params
 
 # Datastore namespace. Must equal the plugin directory name (what
 # PluginBase.get_name() / get_user_data_store() use), so detect (write) and
@@ -24,35 +22,8 @@ def _run_key(celery_task_id):
     return "run:{}".format(celery_task_id)
 
 
-def _validate_params(data):
-    """Validate detection parameters. Returns (params_dict, error_message)."""
-    try:
-        epsg = int(data.get('epsg'))
-    except (TypeError, ValueError):
-        return None, _('A valid EPSG code is required.')
-    if not (1024 <= epsg <= 999999):
-        return None, _('EPSG code out of range (1024–999999).')
-
-    try:
-        dict_id = int(data.get('dict', 1))
-    except (TypeError, ValueError):
-        return None, _('Invalid ArUco dictionary id.')
-    if dict_id not in VALID_DICTS:
-        return None, _('Unsupported ArUco dictionary id (use 0–20 or 99).')
-
-    try:
-        minrate = float(data.get('minrate', 0.01))
-        ignore = float(data.get('ignore', 0.33))
-    except (TypeError, ValueError):
-        return None, _('Invalid detection parameters.')
-    if not (0.0 < minrate <= 1.0):
-        return None, _('minrate must be in the range (0, 1].')
-    if not (0.0 <= ignore < 1.0):
-        return None, _('ignore must be in the range [0, 1).')
-
-    adjust = str(data.get('adjust', 'true')).lower() in ('1', 'true', 'on', 'yes')
-    return {'epsg': epsg, 'dict_id': dict_id, 'minrate': minrate,
-            'ignore': ignore, 'adjust': adjust}, None
+def _last_key(task_id):
+    return "last:{}".format(task_id)
 
 
 class TaskFindGCPDetect(TaskView):
@@ -82,7 +53,7 @@ class TaskFindGCPDetect(TaskView):
             return Response({'error': _('Cannot read the coordinate file.')},
                             status=status.HTTP_200_OK)
 
-        params, error = _validate_params(request.data)
+        params, error = validate_params(request.data)
         if error is not None:
             return Response({'error': error}, status=status.HTTP_200_OK)
 
@@ -97,9 +68,16 @@ class TaskFindGCPDetect(TaskView):
             params['adjust'], task.name).task_id
 
         # Bind this run to the requesting user (per-user datastore) and to the
-        # task, so only the owner can poll/read its result.
+        # task. Keep one ownership record per (user, task): drop the previous
+        # run's record so entries don't accumulate, but DO NOT delete on read,
+        # so a completed result stays retrievable (until the celery result
+        # itself expires) instead of being one-shot.
         store = UserDataStore(PLUGIN_NAMESPACE, request.user)
+        prev = store.get_string(_last_key(task.id), "")
+        if prev:
+            store.del_key(_run_key(prev))
         store.set_string(_run_key(celery_task_id), str(task.id))
+        store.set_string(_last_key(task.id), celery_task_id)
 
         return Response({'celery_task_id': celery_task_id}, status=status.HTTP_200_OK)
 
@@ -107,19 +85,21 @@ class TaskFindGCPDetect(TaskView):
 class TaskFindGCPCheck(APIView):
     """Poll detection status; on completion returns the summary and gcp_list text.
 
-    Results are bound to the user who started the run via the plugin's per-user
-    datastore, and to the task: the run's celery id must be recorded in the
-    requesting user's store with a matching task pk. This closes the gap where
-    any authenticated user could read a result by knowing its celery id.
+    Results are bound to the user who started the run (via the plugin's per-user
+    datastore) and to the task: the run's celery id must be recorded in the
+    requesting user's store with a matching task pk. Worker exceptions are turned
+    into a terminal error response (not an HTTP 500) and clean up the ownership
+    record. Successful results are left in place so they can be re-fetched.
     """
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request, pk=None, celery_task_id=None, **kwargs):
         store = UserDataStore(PLUGIN_NAMESPACE, request.user)
-        owned_task = store.get_string(_run_key(celery_task_id), "")
+        key = _run_key(celery_task_id)
+        owned_task = store.get_string(key, "")
         if not owned_task or owned_task != str(pk):
-            # Not started by this user (or not for this task). Return a terminal
-            # error (HTTP 200) so the client stops polling instead of looping.
+            # Not started by this user (or not for this task). Terminal error
+            # (HTTP 200) so the client stops polling instead of looping.
             return Response({'ready': True, 'error': _('Result not found.')},
                             status=status.HTTP_200_OK)
 
@@ -131,10 +111,22 @@ class TaskFindGCPCheck(APIView):
                     out[k] = res.info[k]
             return Response(out, status=status.HTTP_200_OK)
 
-        # Terminal: release the ownership record (the gcp_list is delivered here
-        # and downloaded client-side, so the run does not need to be re-read).
-        result = res.get()
-        store.del_key(_run_key(celery_task_id))
+        # Terminal. get(propagate=False) returns the worker's return value on
+        # success, or the raised exception instance on failure — never re-raises.
+        try:
+            result = res.get(propagate=False)
+        except Exception as e:  # backend/deserialization failure
+            store.del_key(key)
+            return Response({'ready': True,
+                             'error': _('Detection failed in the worker: %(err)s')
+                             % {'err': str(e)[:300]}})
+
+        if not isinstance(result, dict):
+            # The worker function raised (e.g. cv2 missing, OOM, OpenCV error).
+            store.del_key(key)
+            return Response({'ready': True,
+                             'error': _('Detection failed in the worker: %(err)s')
+                             % {'err': str(result)[:300]}})
 
         if result.get('error') is not None:
             return Response({'ready': True, 'error': result['error']})

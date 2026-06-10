@@ -150,6 +150,10 @@
       ? '<p class="warn">⚠ {% trans "Fewer than 5 unique markers — 5–10+ are recommended for a robust bundle adjustment." %}</p>' : "";
     var unmatched = (summary.unmatched_ids && summary.unmatched_ids.length)
       ? '<p class="warn">⚠ {% trans "Detected but not in the coordinate file:" %} ' + summary.unmatched_ids.join(", ") + '</p>' : "";
+    var skipped = (summary.coord_skipped_lines && summary.coord_skipped_lines.length)
+      ? '<p class="warn">⚠ {% trans "Coordinate lines skipped (malformed / non-integer id / nan/inf), line numbers:" %} ' + summary.coord_skipped_lines.join(", ") + '</p>' : "";
+    var dupes = (summary.coord_duplicate_ids && summary.coord_duplicate_ids.length)
+      ? '<p class="warn">⚠ {% trans "Duplicate coordinate ids (first occurrence kept):" %} ' + summary.coord_duplicate_ids.join(", ") + '</p>' : "";
 
     $("result").style.display = "block";
     $("result").innerHTML =
@@ -161,7 +165,7 @@
         '<li>{% trans "Unique markers" %}: ' + summary.unique_markers + '</li>' +
         '<li>EPSG: ' + summary.epsg + '</li>' +
       '</ul>' +
-      warnUnique + unmatched +
+      warnUnique + unmatched + skipped + dupes +
       '<table class="markers"><thead><tr><th>{% trans "Marker ID" %}</th><th>{% trans "Images" %}</th></tr></thead><tbody>' +
         rows + '</tbody></table>' +
       '<p><button id="dl-gcp" class="btn btn-primary"><i class="fa fa-download"></i> {% trans "Download gcp_list.txt" %}</button></p>';

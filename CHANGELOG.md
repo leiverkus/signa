@@ -11,10 +11,21 @@ and behaviour may change between minor releases.
 
 ## [0.2.0] - 2026-06-10
 
-Hardening release after the first internal review. Addresses
-production-blocking issues; not yet verified against a live WebODM instance.
+Hardening release after two internal reviews. Addresses production-blocking
+issues; not yet verified against a live WebODM instance.
 
 ### Fixed
+- **Parser warnings surfaced in the UI**: skipped coordinate lines and duplicate
+  ids (already returned by the worker) are now shown as warnings in the result
+  panel, so bad/missing coordinates can't pass unnoticed.
+- **Worker exceptions no longer 500**: the status endpoint reads the result with
+  `get(propagate=False)` and turns a worker failure (e.g. missing `cv2`, OOM,
+  OpenCV error) into a terminal error response, releasing the ownership record
+  instead of leaving it dangling.
+- **Results are no longer one-shot**: the ownership record is kept after a
+  successful read (a dropped connection no longer loses a finished
+  `gcp_list.txt`); accumulation is bounded to one record per (user, task) by
+  pruning the previous run on a new detect.
 - **Worker `NameError`**: detection failed in the Celery worker because
   `run_function_async` serializes only the function source and exec's it in an
   empty namespace (`app/plugins/worker.py` → `eval_async`). `detect_gcps` is now
@@ -48,10 +59,17 @@ production-blocking issues; not yet verified against a live WebODM instance.
 - Robust coordinate parsing: rejects non-integer ids (`1.9`), `nan`/`inf`
   coordinates, and reports duplicate ids and skipped lines instead of silently
   overwriting.
+- Extracted parameter validation into a Django-free `params.py` and added 13
+  unit tests for it (range/type/`nan` checks, dictionary whitelist, `adjust`
+  parsing) — the API permission/run-binding logic still needs a live WebODM.
 
 ### Changed
-- Pinned `requirements.txt` versions and `ludeeus/action-shellcheck@2.0.0`
-  (was `@master`).
+- Reproducible Docker build: `worker.Dockerfile` defaults `WEBODM_VERSION` to a
+  concrete tag (`3.2.4`, override to match your install) instead of `latest`,
+  and pins `opencv-contrib-python-headless==4.10.0.84`. `requirements.txt`
+  pinned to the same OpenCV version. Removed the obsolete `version:` key from
+  `docker-compose.findgcp.yml`.
+- Pinned `ludeeus/action-shellcheck@2.0.0` (was `@master`).
 - CI now runs the unit tests in addition to shellcheck, compile-check and the
   test build.
 - Marked the plugin `experimental` in the manifest while in `0.x`.
