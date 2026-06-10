@@ -207,6 +207,32 @@ def test_missing_cv2_returns_friendly_error(monkeypatch):
     assert "cv2" in res["error"] and "docker/" in res["error"]
 
 
+def test_cv2_without_aruco_returns_friendly_error():
+    """A cv2 present but WITHOUT the aruco module must NOT crash with an uncaught
+    ImportError (the regression of finding #2: `from cv2 import aruco` used to
+    sit *after* the guarded import). It is caught, the fallback is tried, and a
+    clear "fix the worker image" error is returned.
+
+    We manage sys.modules by hand (not monkeypatch): the cv2 entry must be
+    *fully* replaced — any leftover real ``cv2.aruco`` submodule from another
+    test would let ``from cv2 import aruco`` succeed and mask the case."""
+    saved = {k: sys.modules[k] for k in list(sys.modules) if k == "cv2" or k.startswith("cv2.")}
+    for k in saved:
+        del sys.modules[k]
+    fake_cv2 = types.ModuleType("cv2")  # no `aruco` attribute, no __path__
+    fake_cv2.__version__ = "4.10.0"
+    sys.modules["cv2"] = fake_cv2
+    try:
+        detect = load_detect_source_fn()
+        res = run(detect, image_paths=["/x/a.JPG", "/x/b.JPG"], coords_text="5 1 2 3")
+        assert "error" in res                       # no uncaught exception
+        assert "cv2.aruco" in res["error"] and "docker/" in res["error"]
+    finally:
+        for k in [k for k in list(sys.modules) if k == "cv2" or k.startswith("cv2.")]:
+            del sys.modules[k]
+        sys.modules.update(saved)
+
+
 def test_legacy_aruco_api(monkeypatch):
     """No ArucoDetector attribute -> fall back to aruco.detectMarkers()."""
     cv2, aruco = make_cv2({"a.JPG": [(5, SQUARE)]})

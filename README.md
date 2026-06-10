@@ -46,7 +46,7 @@ OpenCV into the image instead. In WebODM's compose the `worker` and `webapp`
 share one image (`webodm/webodm_webapp`); extend it and use it for both:
 
 ```bash
-docker build -t webodm-findgcp:1.0.0 \
+docker build -t webodm-findgcp:local \
   --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
   -f docker/worker.Dockerfile docker/
 # then add docker/docker-compose.findgcp.yml as a final -f to your compose command
@@ -226,8 +226,8 @@ browser language.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). The plugin is `0.x` and under active
-development; behaviour may change between minor releases.
+See [CHANGELOG.md](CHANGELOG.md). The plugin follows
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## License
 

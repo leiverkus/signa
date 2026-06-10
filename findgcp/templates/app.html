@@ -158,10 +158,16 @@
     $("dl-gcp").addEventListener("click", function(){ downloadGcpList(summary.gcp_list || ""); });
   }
 
+  // 30-minute safety deadline so a stuck worker never leaves the page polling
+  // forever (the scratch task is still cleaned up by the caller's catch).
+  var POLL_TIMEOUT_MS = 30 * 60 * 1000;
+
   function pollDetect(taskId, celeryId){
     var url = "/api/plugins/findgcp/task/" + taskId + "/check/" + celeryId;
+    var deadline = Date.now() + POLL_TIMEOUT_MS;
     return new Promise(function(resolve, reject){
       (function tick(){
+        if (Date.now() > deadline){ reject(new Error("{% trans 'Detection timed out.' %}")); return; }
         getJson(url).then(function(res){
           if (!res.ready){ setStatus('<i class="fa fa-spinner fa-spin"></i> {% trans "Detecting markers…" %}'); setTimeout(tick, 2000); return; }
           if (res.error){ reject(new Error(res.error)); return; }

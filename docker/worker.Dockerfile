@@ -16,7 +16,7 @@
 # drift. Published webapp tags include 3.2.0 … 3.2.4.
 #
 # Build:
-#   docker build -t webodm-findgcp:0.2.0 \
+#   docker build -t webodm-findgcp:local \
 #     --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
 #     -f docker/worker.Dockerfile docker/
 

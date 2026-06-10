@@ -200,6 +200,14 @@ class WebODM:
         return self.post_form(
             "/api/projects/{}/tasks/{}/commit/".format(project_id, task_id), {})
 
+    def remove_task(self, project_id, task_id):
+        """Best-effort delete of a partial task. Used to clean up after a
+        failure so a half-built task is not left orphaned in the project."""
+        try:
+            self._request("DELETE", "/api/projects/{}/tasks/{}/".format(project_id, task_id))
+        except Exception as e:  # noqa: BLE001 - cleanup must never mask the original error
+            warn("could not remove partial task {}: {}".format(task_id, e))
+
     # --- plugin detection ---
 
     def detect(self, task_id, coords_path, epsg, dict_id, minrate, ignore, adjust,
@@ -259,6 +267,8 @@ def main():
     ap.add_argument("--options", default=None, help="WebODM processing options as JSON")
     ap.add_argument("--dry-run", action="store_true",
                     help="stop before commit (detect + attach GCP, but do not start processing)")
+    ap.add_argument("--keep-on-error", action="store_true",
+                    help="do not delete the partial task if a step fails (default: clean up)")
     args = ap.parse_args()
 
     if not args.password:
@@ -284,38 +294,56 @@ def main():
     task_id = wo.create_partial_task(project_id, name=args.name, options=options, node=args.node)
     log("task {} (partial)".format(task_id))
 
-    log("uploading {} images ...".format(len(images)))
-    for i, img in enumerate(images, 1):
-        wo.upload_file(project_id, task_id, img)
-        if i % 10 == 0 or i == len(images):
-            log("  uploaded {}/{}".format(i, len(images)))
+    # From here on the task exists on the server. If any step fails, remove it
+    # so the run does not leave a half-built partial task orphaned in the
+    # project (override with --keep-on-error for debugging). A --dry-run that
+    # reaches the end keeps the task on purpose; a clean commit keeps it too.
+    keep = False
+    try:
+        log("uploading {} images ...".format(len(images)))
+        for i, img in enumerate(images, 1):
+            wo.upload_file(project_id, task_id, img)
+            if i % 10 == 0 or i == len(images):
+                log("  uploaded {}/{}".format(i, len(images)))
 
-    log("running server-side GCP detection ...")
-    summary = wo.detect(task_id, args.coords, args.epsg, args.dict_id,
-                        args.minrate, args.ignore, args.adjust)
-    log("detection: {} entries, {} unique markers, weak={}".format(
-        summary.get("detections"), summary.get("unique_markers"), summary.get("weak_markers")))
-    for key in ("coord_skipped_lines", "coord_duplicate_ids", "unmatched_ids"):
-        if summary.get(key):
-            warn("{}: {}".format(key, summary[key]))
-    gcp_list = summary.get("gcp_list")
-    if not gcp_list:
-        die("detection produced no gcp_list")
+        log("running server-side GCP detection ...")
+        summary = wo.detect(task_id, args.coords, args.epsg, args.dict_id,
+                            args.minrate, args.ignore, args.adjust)
+        log("detection: {} entries, {} unique markers, weak={}".format(
+            summary.get("detections"), summary.get("unique_markers"), summary.get("weak_markers")))
+        for key in ("coord_skipped_lines", "coord_duplicate_ids", "unmatched_ids"):
+            if summary.get(key):
+                warn("{}: {}".format(key, summary[key]))
+        gcp_list = summary.get("gcp_list")
+        if not gcp_list:
+            raise RuntimeError("detection produced no gcp_list")
 
-    log("attaching gcp_list.txt to the task ...")
-    wo.upload_file(project_id, task_id, "gcp_list.txt", content=gcp_list.encode("ascii"))
+        log("attaching gcp_list.txt to the task ...")
+        wo.upload_file(project_id, task_id, "gcp_list.txt", content=gcp_list.encode("ascii"))
 
-    if args.dry_run:
-        log("--dry-run: task {} is prepared with GCP but NOT committed.".format(task_id))
-        log("Inspect it, then commit via the UI or:")
-        log("  POST {}/api/projects/{}/tasks/{}/commit/".format(args.url, project_id, task_id))
-        return
+        if args.dry_run:
+            keep = True
+            log("--dry-run: task {} is prepared with GCP but NOT committed.".format(task_id))
+            log("Inspect it, then commit via the UI or:")
+            log("  POST {}/api/projects/{}/tasks/{}/commit/".format(args.url, project_id, task_id))
+            return
 
-    log("committing — processing starts WITH the GCP ...")
-    wo.commit(project_id, task_id)
-    log("done. Task {} is processing with georeferencing.".format(task_id))
-    log("  {}/dashboard/?project_task_open={}".format(args.url, task_id))
+        log("committing — processing starts WITH the GCP ...")
+        wo.commit(project_id, task_id)
+        keep = True
+        log("done. Task {} is processing with georeferencing.".format(task_id))
+        log("  {}/dashboard/?project_task_open={}".format(args.url, task_id))
+    except BaseException:
+        if not keep and not args.keep_on_error:
+            warn("cleaning up partial task {} after failure ...".format(task_id))
+            wo.remove_task(project_id, task_id)
+        raise
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        die("interrupted.")
+    except RuntimeError as e:
+        die(str(e))

@@ -5,8 +5,11 @@
 # the webapp. Merge this file AFTER WebODM's own compose files so it overrides
 # the `image:` of those two services.
 #
-# 1) Build the image (pin the tag to YOUR WebODM version):
-#      docker build -t webodm-findgcp:0.2.0 \
+# 1) Build the image. The `webodm-findgcp:local` tag is just a local name — it
+#    need not match any version; only the build `-t` and the `image:` keys below
+#    must be identical. The meaningful pin is WEBODM_VERSION, set to your WebODM
+#    image tag (never `latest`):
+#      docker build -t webodm-findgcp:local \
 #        --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
 #        -f docker/worker.Dockerfile docker/
 #
@@ -26,6 +29,6 @@
 
 services:
   webapp:
-    image: webodm-findgcp:0.2.0
+    image: webodm-findgcp:local
   worker:
-    image: webodm-findgcp:0.2.0
+    image: webodm-findgcp:local

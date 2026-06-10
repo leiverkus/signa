@@ -1,6 +1,8 @@
 # Design: single-pass GCP workflow (detect before processing)
 
-Status: **draft** — design only, not yet implemented.
+Status: **implemented** — all milestones below are done (see [Milestones](#milestones)).
+Kept as the design rationale and decision record; the shipped behaviour is the
+source of truth.
 
 ## Goal
 
@@ -50,7 +52,7 @@ its images uploaded is a valid detection target.
 ## Shared core: the single-pass API sequence
 
 ```
-1. POST /api/token-auth/                                  -> JWT
+1. POST /login/  (session cookie + CSRF)                  # NOT JWT — see Auth note
 2. POST /api/projects/<pid>/tasks/        {partial:true}  -> task <tid>
 3. POST /api/projects/<pid>/tasks/<tid>/upload/  (images, possibly chunked)
 4. POST /api/plugins/findgcp/task/<tid>/detect   (coords file + params) -> celery id
@@ -58,6 +60,10 @@ its images uploaded is a valid detection target.
 5. POST /api/projects/<pid>/tasks/<tid>/upload/  (gcp_list.txt)   # becomes the GCP
 6. POST /api/projects/<pid>/tasks/<tid>/commit/                  # processes WITH GCP
 ```
+
+(An early draft used `POST /api/token-auth/` → JWT for step 1; that was dropped
+because the plugin endpoints are not `csrf_exempt` and reject a JWT alone — see
+the [Auth note](#auth-note-learned-during-the-live-run) below.)
 
 Both deliverables use this exact sequence; only the driver differs (a script vs.
 the browser).

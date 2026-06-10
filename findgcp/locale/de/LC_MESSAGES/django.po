@@ -128,6 +128,10 @@ msgid "Detecting markers…"
 msgstr "Erkenne Marker…"
 
 #: templates/app.html
+msgid "Detection timed out."
+msgstr "Zeitüberschreitung bei der Erkennung."
+
+#: templates/app.html
 msgid "Please select at least 1 image."
 msgstr "Bitte mindestens 1 Bild auswählen."
 

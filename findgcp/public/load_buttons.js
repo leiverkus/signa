@@ -24,27 +24,36 @@
         return m ? decodeURIComponent(m[1]) : "";
     }
 
-    function postForm(url, fields) {
+    function postForm(url, fields, signal) {
         var body = Object.keys(fields)
             .map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(fields[k]); })
             .join("&");
         return fetch(url, {
             method: "POST", credentials: "same-origin",
             headers: { "X-CSRFToken": csrfToken(), "Content-Type": "application/x-www-form-urlencoded" },
-            body: body
+            body: body, signal: signal
         }).then(handle);
     }
 
-    function postMultipart(url, formData) {
+    function postMultipart(url, formData, signal) {
         return fetch(url, {
             method: "POST", credentials: "same-origin",
             headers: { "X-CSRFToken": csrfToken() },   // let the browser set the multipart boundary
-            body: formData
+            body: formData, signal: signal
         }).then(handle);
     }
 
-    function getJson(url) {
-        return fetch(url, { credentials: "same-origin" }).then(handle);
+    function getJson(url, signal) {
+        return fetch(url, { credentials: "same-origin", signal: signal }).then(handle);
+    }
+
+    function deleteTask(projectId, taskId) {
+        // Best-effort cleanup of an orphaned partial task (cancel/error before
+        // commit). Fire and forget — never block or surface a failure.
+        return fetch("/api/projects/" + projectId + "/tasks/" + taskId + "/", {
+            method: "DELETE", credentials: "same-origin",
+            headers: { "X-CSRFToken": csrfToken() }
+        }).catch(function () {});
     }
 
     function handle(r) {
@@ -93,7 +102,9 @@
             "Detecting GCPs…": "Erkenne GCPs…",
             "Detected {n} GCP entries ({m} markers). Attaching…": "{n} GCP-Einträge erkannt ({m} Marker). Hänge an…",
             "Starting processing…": "Starte Verarbeitung…",
-            "Task created and processing with GCP. Closing…": "Task angelegt, Verarbeitung mit GCP läuft. Schließe…"
+            "Task created and processing with GCP. Closing…": "Task angelegt, Verarbeitung mit GCP läuft. Schließe…",
+            "Cancelled.": "Abgebrochen.",
+            "Detection timed out.": "Zeitüberschreitung bei der Erkennung."
         }
     };
 
@@ -147,9 +158,24 @@
               '</div>' +
             '</div>';
 
+        // Tracks the in-flight single-pass run so closing/cancelling can abort
+        // it and clean up the partial task it created (instead of letting the
+        // workflow keep running and commit a task in the background).
+        var state = { cancelled: false, committed: false, taskId: null, controller: null, signal: undefined };
+
+        function cleanup() {
+            if (state.controller) { try { state.controller.abort(); } catch (e) { /* ignore */ } }
+            if (state.taskId && !state.committed) {
+                var tid = state.taskId;
+                state.taskId = null;
+                deleteTask(projectId, tid);   // fire and forget
+            }
+        }
         function close() {
-            document.body.removeChild(modal);
-            document.body.removeChild(backdrop);
+            state.cancelled = true;
+            cleanup();
+            if (modal.parentNode) document.body.removeChild(modal);
+            if (backdrop.parentNode) document.body.removeChild(backdrop);
         }
         function q(sel) { return modal.querySelector(sel); }
         function status(html, kind) {
@@ -175,14 +201,27 @@
                 adjust: q("[data-adjust]").checked ? "true" : "false"
             };
             var name = q("[data-name]").value;
+            // Fresh abort scope per run, so a retry after an error is not
+            // pre-aborted and does not reuse the previous orphaned task.
+            state.cancelled = false;
+            state.committed = false;
+            state.taskId = null;
+            state.controller = window.AbortController ? new AbortController() : null;
+            state.signal = state.controller ? state.controller.signal : undefined;
             q("[data-go]").disabled = true;
-            runSinglePass(projectId, images, coords, params, name, status)
+            runSinglePass(projectId, images, coords, params, name, status, state)
                 .then(function (taskId) {
                     status('<i class="fa fa-check"></i> ' + tr("Task created and processing with GCP. Closing…"), "ok");
                     setTimeout(function () { close(); if (onNewTaskAdded) onNewTaskAdded(); }, 1200);
                 })
                 .catch(function (e) {
+                    if (state.cancelled) return;   // closed/aborted — dialog already gone
                     status('<i class="fa fa-exclamation-triangle"></i> ' + e.message, "error");
+                    // Remove the orphaned partial task so a retry starts clean.
+                    if (state.taskId && !state.committed) {
+                        deleteTask(projectId, state.taskId);
+                        state.taskId = null;
+                    }
                     q("[data-go]").disabled = false;
                 });
         };
@@ -200,28 +239,32 @@
         }).catch(function () {});
     }
 
-    function runSinglePass(projectId, images, coordsFile, params, name, status) {
+    function runSinglePass(projectId, images, coordsFile, params, name, status, state) {
         var base = "/api/projects/" + projectId + "/tasks/";
-        var taskId;
+        var sig = state.signal;
+        function ck() { if (state.cancelled) throw new Error(tr("Cancelled.")); }
         status('<i class="fa fa-spinner fa-spin"></i> ' + tr("Creating task…"));
         var createFd = new FormData();
         createFd.append("partial", "true");
         if (name) createFd.append("name", name);
 
-        return postMultipart(base, createFd).then(function (task) {
-            taskId = task.id;
+        return postMultipart(base, createFd, sig).then(function (task) {
+            state.taskId = task.id;
+            ck();
             // Upload images sequentially (robust; mirrors the script).
             var chain = Promise.resolve();
             Array.prototype.forEach.call(images, function (file, i) {
                 chain = chain.then(function () {
+                    ck();
                     status('<i class="fa fa-spinner fa-spin"></i> ' + tr("Uploading images…") + ' ' + (i + 1) + "/" + images.length);
                     var fd = new FormData();
                     fd.append("images", file, file.name);
-                    return postMultipart(base + taskId + "/upload/", fd);
+                    return postMultipart(base + state.taskId + "/upload/", fd, sig);
                 });
             });
             return chain;
         }).then(function () {
+            ck();
             status('<i class="fa fa-spinner fa-spin"></i> ' + tr("Detecting GCPs…"));
             var fd = new FormData();
             fd.append("coords", coordsFile, "gcp_coords.txt");
@@ -230,31 +273,42 @@
             fd.append("minrate", params.minrate);
             fd.append("ignore", params.ignore);
             fd.append("adjust", params.adjust);
-            return postMultipart("/api/plugins/findgcp/task/" + taskId + "/detect", fd);
+            return postMultipart("/api/plugins/findgcp/task/" + state.taskId + "/detect", fd, sig);
         }).then(function (started) {
             if (started.error) throw new Error(started.error);
-            return pollDetect(taskId, started.celery_task_id, status);
+            return pollDetect(state.taskId, started.celery_task_id, status, state);
         }).then(function (summary) {
+            ck();
             status('<i class="fa fa-spinner fa-spin"></i> ' +
                    tr("Detected {n} GCP entries ({m} markers). Attaching…")
                        .replace("{n}", summary.detections)
                        .replace("{m}", summary.unique_markers));
             var fd = new FormData();
             fd.append("images", new Blob([summary.gcp_list], { type: "text/plain" }), "gcp_list.txt");
-            return postMultipart(base + taskId + "/upload/", fd);
+            return postMultipart(base + state.taskId + "/upload/", fd, sig);
         }).then(function () {
+            ck();
             status('<i class="fa fa-spinner fa-spin"></i> ' + tr("Starting processing…"));
-            return postForm(base + taskId + "/commit/", {});
+            return postForm(base + state.taskId + "/commit/", {}, sig);
         }).then(function () {
-            return taskId;
+            state.committed = true;   // past this point the task is the wanted result, not an orphan
+            return state.taskId;
         });
     }
 
-    function pollDetect(taskId, celeryId, status) {
+    // 30-minute safety deadline so a stuck worker never leaves the dialog
+    // polling forever; also bails out as soon as the run is cancelled.
+    var POLL_TIMEOUT_MS = 30 * 60 * 1000;
+
+    function pollDetect(taskId, celeryId, status, state) {
         var url = "/api/plugins/findgcp/task/" + taskId + "/check/" + celeryId;
+        var deadline = Date.now() + POLL_TIMEOUT_MS;
         return new Promise(function (resolve, reject) {
             (function tick() {
-                getJson(url).then(function (res) {
+                if (state && state.cancelled) { reject(new Error(tr("Cancelled."))); return; }
+                if (Date.now() > deadline) { reject(new Error(tr("Detection timed out."))); return; }
+                getJson(url, state && state.signal).then(function (res) {
+                    if (state && state.cancelled) { reject(new Error(tr("Cancelled."))); return; }
                     if (!res.ready) { setTimeout(tick, 2000); return; }
                     if (res.error) { reject(new Error(res.error)); return; }
                     resolve(res.summary || {});

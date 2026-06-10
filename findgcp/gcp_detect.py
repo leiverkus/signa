@@ -30,17 +30,28 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
 
     import numpy as np
 
-    # OpenCV must be importable in this (Celery worker) process. Two supported
-    # ways, tried in order:
-    #   1. cv2 is in the worker image — the robust path (see the docker/ dir).
+    # OpenCV (with the ArUco contrib module) must be importable in this
+    # (Celery worker) process. Two supported ways, tried in order:
+    #   1. cv2+aruco is in the worker image — the robust path (see docker/).
     #   2. self-contained single-host: WebODM installs the plugin's
     #      requirements.txt into <MEDIA_ROOT>/plugins/findgcp/site-packages, on
     #      the media volume shared with this worker. We add that to sys.path and
     #      retry. numpy is already loaded by WebODM, so cv2 reuses it.
-    # If both fail (e.g. a distributed worker without the shared volume), return
-    # a clear error pointing to the durable docker/ image.
+    # We require BOTH cv2 and cv2.aruco, so a base opencv-python (no aruco)
+    # cannot satisfy the check and silently skip detection — the `from cv2
+    # import aruco` lives inside the guarded import, not after it. If everything
+    # fails (no cv2 at all, a cv2 without aruco that we can't replace, or a
+    # distributed worker without the shared volume), we return a clear error
+    # pointing to the durable docker/ image rather than crashing. We do NOT
+    # purge/reimport a cached cv2: OpenCV's bootstrap is not re-entrant, so a
+    # runtime swap is fragile — fixing the worker image is the right remedy.
+    def _load_cv2():
+        import cv2 as _cv2
+        from cv2 import aruco as _aruco
+        return _cv2, _aruco
+
     try:
-        import cv2
+        cv2, aruco = _load_cv2()
     except ImportError:
         site_packages = []
         try:
@@ -53,16 +64,15 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
             if os.path.isdir(_sp) and _sp not in sys.path:
                 sys.path.insert(0, _sp)
         try:
-            import cv2
+            cv2, aruco = _load_cv2()
         except ImportError:
-            return {'error': "OpenCV (cv2) is not available in the worker. On a "
-                             "single-host WebODM it is installed automatically when "
-                             "the plugin is enabled (after a webapp restart); on a "
-                             "distributed/server setup, add it to the worker image "
-                             "(see the plugin's docker/ directory) or run: "
-                             "docker exec worker pip install "
-                             "opencv-contrib-python-headless"}
-    from cv2 import aruco
+            return {'error': "OpenCV with the ArUco module (cv2.aruco) is not "
+                             "available in the worker. On a single-host WebODM it is "
+                             "installed automatically when the plugin is enabled "
+                             "(after a webapp restart); on a distributed/server "
+                             "setup, add opencv-contrib to the worker image (see "
+                             "the plugin's docker/ directory) or run: docker exec "
+                             "worker pip install opencv-contrib-python-headless"}
 
     # --- Find-GCP color LUT for --adjust (gcp_find.py LUT_IN / LUT_OUT) ---
     LUT_IN = [0, 158, 216, 255]

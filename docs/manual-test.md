@@ -19,9 +19,11 @@ byte-for-byte identical (sorted) to the fixture's `expected_gcp_list.txt`
   `docker restart webapp` is needed for all workers to pick up a hot-uploaded
   plugin.
 - OpenCV was provided to the worker transiently (`docker exec worker pip install
-  opencv-contrib-python-headless==4.10.0.84`) for the run; for a durable setup
-  use the `docker/` worker image instead (a transient install is lost when the
-  container is recreated).
+  opencv-contrib-python-headless==4.10.0.84`) for the run. That run **predates**
+  the self-contained auto-install (plugin 1.1.0, section 2a), so the automatic
+  path has **not yet been exercised end to end live** — verify it per the
+  checklist there. For a durable distributed setup, the `docker/` worker image
+  (section 2b) remains the robust path.
 
 ## 0. Prerequisites
 
@@ -42,11 +44,32 @@ byte-for-byte identical (sorted) to the fixture's `expected_gcp_list.txt`
 ## 2. Give the worker `cv2`
 
 Detection runs in the Celery worker, which uses the stock `webodm/webodm_webapp`
-image without OpenCV. Build and deploy the custom image (see [`../docker/`](../docker/)):
+image without OpenCV. There are two ways to provide it — pick **one**.
+
+### 2a. Single-host — automatic (default, plugin 1.1.0+)
+
+Nothing to build. The plugin ships a `requirements.txt`; WebODM installs OpenCV
+into the plugin's per-plugin site-packages on enable. That directory lives on
+the media volume the `webapp` and `worker` containers **share**, and the
+detection code adds it to `sys.path`. So just install + enable the plugin
+(section 3) and `docker restart webapp` — no manual step.
+
+- [ ] **To verify live — not yet exercised end to end.** Starting from a clean
+      worker (`docker compose exec worker python -c "import cv2"` →
+      `ModuleNotFoundError`), install + enable the plugin, `docker restart
+      webapp`, then run detection (section 6) and confirm it succeeds **without**
+      any manual `pip install`. Check that
+      `<MEDIA_ROOT>/plugins/findgcp/site-packages` exists and contains a `cv2*`
+      package.
+
+### 2b. Distributed / robust — bake it into the worker image
+
+If the worker runs on a different host (no shared media volume), or you want a
+durable image, build and deploy the custom image (see [`../docker/`](../docker/)):
 
 ```bash
 # match the tag to your WebODM (docker image ls | grep webodm_webapp)
-docker build -t webodm-findgcp:0.2.0 \
+docker build -t webodm-findgcp:local \
   --build-arg WEBODM_VERSION=3.2.4 \
   -f docker/worker.Dockerfile docker/
 ```
@@ -57,9 +80,9 @@ as a final `-f` to your compose command, then restart the stack.
 - [ ] `docker compose exec worker python -c "import cv2; print(cv2.__version__)"`
       prints a version (not `ModuleNotFoundError`).
 
-> If you skip this step, detection returns a terminal error
-> *"Detection failed in the worker: No module named 'cv2'"* — which itself is a
-> valid check that the error handling (not an HTTP 500) works.
+> If neither path provides OpenCV, detection returns a terminal error
+> *"OpenCV with the ArUco module (cv2.aruco) is not available in the worker…"* —
+> which itself is a valid check that the error handling (not an HTTP 500) works.
 
 ## 3. Install the plugin
 

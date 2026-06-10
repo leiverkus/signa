@@ -4,10 +4,40 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-While the version is `0.x` the plugin is under active development and the API
-and behaviour may change between minor releases.
 
 ## [Unreleased]
+
+## [1.1.1] - 2026-06-10
+
+Robustness fixes from a code review (no behaviour change to a successful run).
+
+### Fixed
+- **OpenCV without ArUco no longer crashes.** `from cv2 import aruco` now lives
+  *inside* the guarded import in `detect_gcps`, so a base `opencv-python` that
+  lacks the contrib `aruco` module triggers the fallback (and, if it still can't
+  be satisfied, the clear "fix the worker image" error) instead of an uncaught
+  `ImportError`. We deliberately do **not** purge/reimport a cached `cv2` —
+  OpenCV's bootstrap is not re-entrant, so a runtime swap is fragile.
+- **Cancelling the dashboard "Find-GCP Task" dialog now aborts the run.** Closing
+  or cancelling mid-flight aborts in-flight requests and deletes the partial task
+  it created, instead of letting the workflow keep running and commit a task in
+  the background.
+- **Orphaned partial tasks are cleaned up on error.** Both the dashboard button
+  and `scripts/findgcp-singlepass.py` now remove the half-built partial task if a
+  step fails (the script adds `--keep-on-error` to opt out for debugging).
+- **Browser polling has a 30-minute safety timeout.** The dashboard dialog and
+  the Find-GCP menu page no longer poll forever if the worker gets stuck.
+
+### Docs
+- Aligned the custom worker-image tag to a stable, version-independent
+  `webodm-findgcp:local` across the README, `docker/`, and the manual-test doc
+  (it previously drifted between `0.2.0` and `1.0.0`).
+- `docs/single-pass-design.md`: marked implemented (was "design only") and
+  removed the discarded JWT step from the API sequence (the plugin endpoints
+  require session + CSRF, as the Auth note already explained).
+- `docs/manual-test.md`: split the worker-OpenCV step into the single-host
+  automatic path (2a, flagged as not yet exercised live) and the docker-image
+  path (2b).
 
 ## [1.1.0] - 2026-06-10
 

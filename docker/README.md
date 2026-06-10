@@ -25,7 +25,7 @@ compose).
 2. **Build** the custom image, pinning that tag:
 
    ```bash
-   docker build -t webodm-findgcp:0.2.0 \
+   docker build -t webodm-findgcp:local \
      --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
      -f docker/worker.Dockerfile docker/
    ```
