@@ -2,7 +2,7 @@
 
 Renders one DIN-A page per marker id: the marker centered with a one-module
 quiet zone, an optional red center aiming aid (the marker center is the point
-Find-GCP reports, so that is where the total station / disto target belongs)
+Signa reports, so that is where the total station / disto target belongs)
 and a human-readable label. Every page is run through the ArUco detector
 before it is embedded — a sheet that would not be detectable in the field can
 never leave the server.
@@ -24,10 +24,10 @@ try:
     from .params import PAGE_SIZES_MM, DICT_CHOICES
 except ImportError:
     # Loaded standalone (the test suite loads modules via importlib, because
-    # importing the findgcp package would import WebODM).
+    # importing the signa package would import WebODM).
     import importlib.util
     _spec = importlib.util.spec_from_file_location(
-        "findgcp_params", os.path.join(os.path.dirname(os.path.abspath(__file__)), "params.py"))
+        "signa_params", os.path.join(os.path.dirname(os.path.abspath(__file__)), "params.py"))
     _params = importlib.util.module_from_spec(_spec)
     _spec.loader.exec_module(_params)
     PAGE_SIZES_MM = _params.PAGE_SIZES_MM
@@ -79,10 +79,10 @@ def _load_cv2():
         site_packages = []
         try:
             from django.conf import settings as _dj
-            site_packages.append(os.path.join(_dj.MEDIA_ROOT, "plugins", "findgcp", "site-packages"))
+            site_packages.append(os.path.join(_dj.MEDIA_ROOT, "plugins", "signa", "site-packages"))
         except Exception:
             pass
-        site_packages.append("/webodm/app/media/plugins/findgcp/site-packages")
+        site_packages.append("/webodm/app/media/plugins/signa/site-packages")
         for sp in site_packages:
             if os.path.isdir(sp) and sp not in sys.path:
                 sys.path.insert(0, sp)

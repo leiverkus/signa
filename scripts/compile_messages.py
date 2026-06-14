@@ -3,7 +3,7 @@
 
 Usage:
     python3 scripts/compile_messages.py [LOCALE_DIR]
-    # default LOCALE_DIR: findgcp/locale
+    # default LOCALE_DIR: signa/locale
 
 Walks LOCALE_DIR for *.po and writes a .mo next to each. The .mo writer follows
 CPython's Tools/i18n/msgfmt.py (sorted keys, no hash table — gettext does a
@@ -132,5 +132,5 @@ def main(locale_dir):
 
 if __name__ == '__main__':
     here = os.path.dirname(os.path.abspath(__file__))
-    default = os.path.join(here, '..', 'findgcp', 'locale')
+    default = os.path.join(here, '..', 'signa', 'locale')
     raise SystemExit(main(sys.argv[1] if len(sys.argv) > 1 else default))

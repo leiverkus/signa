@@ -1,0 +1,75 @@
+.signa {
+  max-width: 760px;
+  padding: 12px 4px 40px;
+}
+.signa h2 { margin-top: 0; }
+
+.signa .dropzone {
+  border: 2px dashed #bbb;
+  border-radius: 6px;
+  padding: 28px 16px;
+  text-align: center;
+  color: #888;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: border-color .15s, background .15s;
+}
+.signa .dropzone:hover { border-color: #888; }
+.signa .dropzone.over { border-color: #2c3e50; background: #eef3f7; color: #2c3e50; }
+.signa .dropzone .dz-text { margin-top: 8px; }
+.signa .dropzone .dz-count { margin-top: 6px; font-weight: 600; color: #2c3e50; }
+
+.signa .help { color: #888; margin-bottom: 20px; }
+.signa .frow { margin-bottom: 14px; }
+.signa label { display: block; font-weight: 600; margin-bottom: 4px; }
+.signa small { display: block; color: #999; margin-top: 4px; }
+.signa select,
+.signa input[type="number"],
+.signa input[type="file"] {
+  width: 100%;
+  max-width: 420px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+/* Two columns without relying on CSS-grid `gap` (which some setups drop, making
+   the columns touch and look overlapped). Flex items at width:50% with inner
+   padding guarantee the gap; box-sizing keeps everything inside the column. */
+.signa .grid { display: flex; flex-wrap: wrap; }
+.signa .grid > .frow { width: 50%; min-width: 0; box-sizing: border-box; }
+.signa .grid > .frow:nth-child(odd) { padding-right: 9px; }
+.signa .grid > .frow:nth-child(even) { padding-left: 9px; }
+.signa .grid > .frow input,
+.signa .grid > .frow select { width: 100%; max-width: 100%; box-sizing: border-box; }
+.signa .checkbox label { font-weight: 400; }
+.signa .checkbox input { width: auto; margin-right: 6px; }
+.signa button { margin-top: 8px; }
+
+.signa .status {
+  margin-top: 18px;
+  padding: 10px 14px;
+  border-radius: 4px;
+  background: #f3f3f3;
+}
+.signa .status.error { background: #f8d7da; color: #842029; }
+.signa .status.ok { background: #d4edda; color: #155724; }
+
+.signa .field-error { color: #b94a48; margin-top: 4px; font-size: 0.9em; }
+.signa-settings .cb { font-weight: 400; }
+.signa-settings .cb input { margin-right: 6px; width: auto; }
+
+.signa .result { margin-top: 22px; }
+.signa .result ul { padding-left: 18px; }
+.signa .result .warn { color: #b8860b; }
+.signa table.markers {
+  border-collapse: collapse;
+  margin: 12px 0;
+  min-width: 280px;
+}
+.signa table.markers th,
+.signa table.markers td {
+  border: 1px solid #ddd;
+  padding: 4px 12px;
+  text-align: left;
+}
+.signa table.markers th { background: #f3f3f3; }
+.signa .warn { color: #b8860b; font-weight: 600; }

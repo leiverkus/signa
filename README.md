@@ -1,8 +1,8 @@
-# Find-GCP for WebODM
+# Signa for WebODM
 
-[![CI](https://github.com/leiverkus/find-gcp-webodm-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/leiverkus/find-gcp-webodm-plugin/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/leiverkus/find-gcp-webodm-plugin?sort=semver)](https://github.com/leiverkus/find-gcp-webodm-plugin/releases)
-[![License: MIT](https://img.shields.io/github/license/leiverkus/find-gcp-webodm-plugin)](LICENSE)
+[![CI](https://github.com/leiverkus/signa-webodm-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/leiverkus/signa-webodm-plugin/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/leiverkus/signa-webodm-plugin?sort=semver)](https://github.com/leiverkus/signa-webodm-plugin/releases)
+[![License: MIT](https://img.shields.io/github/license/leiverkus/signa-webodm-plugin)](LICENSE)
 [![WebODM ≥ 2.9.5](https://img.shields.io/badge/WebODM-%E2%89%A5%202.9.5-1f6feb.svg)](https://github.com/WebODM/WebODM)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab.svg)](https://www.python.org/)
 
@@ -19,16 +19,16 @@ optionally upload via the API) is kept under [`standalone/`](standalone/).
 
 ## Install in WebODM
 
-1. Download `findgcp-<version>.zip` from the
-   [Releases](https://github.com/leiverkus/find-gcp-webodm-plugin/releases) page.
+1. Download `signa-<version>.zip` from the
+   [Releases](https://github.com/leiverkus/signa-webodm-plugin/releases) page.
 2. In WebODM: **Administration → Plugins → Load Plugin (.zip)** and upload the zip.
-3. Enable the plugin. A **Find-GCP** entry appears in the main menu.
+3. Enable the plugin. A **Signa** entry appears in the main menu.
 4. **Restart the web app** after every install or update
    (`docker restart webapp`). **This is required, not optional.** Uploading a
    plugin swaps the files on disk, but the running gunicorn workers keep the old
    plugin module in `sys.modules` (Python does not re-import it) — and each
    worker is independent. Without a restart you get intermittent symptoms across
-   reloads: the **Find-GCP page 404s** on some workers, and the **"Find-GCP
+   reloads: the **Signa page 404s** on some workers, and the **"Signa
    task" dashboard button appears and disappears** (workers that still run the
    old module don't inject its JavaScript). A restart re-imports the plugin in
    every worker. After restarting, hard-refresh the browser once.
@@ -56,10 +56,10 @@ OpenCV into the image instead. In WebODM's compose the `worker` and `webapp`
 share one image (`webodm/webodm_webapp`); extend it and use it for both:
 
 ```bash
-docker build -t webodm-findgcp:local \
+docker build -t webodm-signa:local \
   --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
   -f docker/worker.Dockerfile docker/
-# then add docker/docker-compose.findgcp.yml as a final -f to your compose command
+# then add docker/docker-compose.signa.yml as a final -f to your compose command
 ```
 
 Ready-made files and steps are in [`docker/`](docker/) /
@@ -82,10 +82,10 @@ user cannot read another's result by knowing its celery id.
 
 The plugin offers two entry points:
 
-**Find-GCP menu page — standalone detection tool** (like the core `posm-gcpi`
+**Signa menu page — standalone detection tool** (like the core `posm-gcpi`
 GCP interface, but automatic):
 
-1. Open **Find-GCP** from the menu.
+1. Open **Signa** from the menu.
 2. **Drop drone images** (or click to choose) and select the **GCP coordinate
    file** — one marker per line: `id easting northing elevation` (whitespace or
    comma separated). Optionally declare the CRS in a comment (`# … (EPSG:28191)`)
@@ -97,7 +97,7 @@ GCP interface, but automatic):
 It runs the detection on a throwaway scratch task that is deleted again
 afterwards — nothing is processed. Use this to produce or QA a `gcp_list.txt`.
 
-**Dashboard "Find-GCP Task" button — single pass** (detect **and** georeference
+**Dashboard "Signa Task" button — single pass** (detect **and** georeference
 in one run): see [Single-pass](#single-pass-detect-before-processing) below.
 
 ### Parameters
@@ -112,7 +112,7 @@ in one run): see [Single-pass](#single-pass-detect-before-processing) below.
 
 ### Print marker sheets
 
-The **Find-GCP Settings** page can generate print-ready ArUco marker PDFs
+The **Signa Settings** page can generate print-ready ArUco marker PDFs
 (one marker per page) — so the markers you lay out in the field are guaranteed
 to match the dictionary the detector expects:
 
@@ -164,7 +164,7 @@ already writes this header.)
 > WebODM does not reproject them. The image EXIF (WGS84) may differ; ODX
 > reprojects the EXIF internally.
 
-The **Find-GCP** menu page detects GCPs on a task that already exists — useful
+The **Signa** menu page detects GCPs on a task that already exists — useful
 for QA and for producing a `gcp_list.txt`. Because GCPs are an input to ODM's
 reconstruction (not a post-hoc transform), applying them to an *already
 processed* task means reprocessing. To georeference in **one** run, use the
@@ -174,14 +174,14 @@ single-pass entry points below.
 
 Detect the GCPs and feed them into the **same** processing run:
 
-- **Dashboard button** — next to *Select Images and GCP*, a **Find-GCP Task**
+- **Dashboard button** — next to *Select Images and GCP*, a **Signa Task**
   button opens a dialog (images + coordinate file + params) and does
   `create → upload → detect → attach gcp_list → start processing` for you.
-- **Script** — [`scripts/findgcp-singlepass.py`](scripts/findgcp-singlepass.py)
+- **Script** — [`scripts/signa-singlepass.py`](scripts/signa-singlepass.py)
   does the same headless, for automation:
 
   ```bash
-  WEBODM_PASS=… scripts/findgcp-singlepass.py --url http://localhost:8000 \
+  WEBODM_PASS=… scripts/signa-singlepass.py --url http://localhost:8000 \
     --user me --create-project "site-2026" \
     --images ./raw --coords ./gcp_coords.txt --epsg 28191 [--dry-run]
   ```
@@ -205,7 +205,7 @@ WebODM does not currently offer.
 ## Plugin layout
 
 ```
-findgcp/                  # ← single root dir required by WebODM's plugin loader
+signa/                  # ← single root dir required by WebODM's plugin loader
 ├── __init__.py
 ├── manifest.json         # name, version, webodmMinVersion, …
 ├── plugin.py             # Plugin(PluginBase): menu, app + API mount points, JS
@@ -219,7 +219,7 @@ findgcp/                  # ← single root dir required by WebODM's plugin load
 │   └── settings.html     # per-user default detection parameters + marker printing
 ├── locale/de/…/django.po # German catalog (+ compiled .mo; en is the source)
 └── public/
-    ├── load_buttons.js   # "Find-GCP task" dashboard button (single-pass)
+    ├── load_buttons.js   # "Signa task" dashboard button (single-pass)
     ├── style.css
     └── icon.svg
 ```
@@ -232,10 +232,10 @@ the archive to contain **exactly one** root directory holding `plugin.py`,
 ## Building the release zip
 
 ```bash
-./build-plugin.sh          # → dist/findgcp-<version>.zip
+./build-plugin.sh          # → dist/signa-<version>.zip
 ```
 
-The script reads the version from `manifest.json`, zips the `findgcp/` directory
+The script reads the version from `manifest.json`, zips the `signa/` directory
 as a single root folder, and verifies the archive structure.
 
 **Automated releases:** push a tag matching the manifest version to build the
@@ -279,15 +279,15 @@ synthetic fixture, so no drone flight is needed.
 ## Standalone CLI (alternative)
 
 If you prefer to run detection outside WebODM, the original Bash pipeline is in
-[`standalone/findgcp-webodm.sh`](standalone/findgcp-webodm.sh) — it wraps
+[`standalone/signa-webodm.sh`](standalone/signa-webodm.sh) — it wraps
 Find-GCP (`gcp_find.py`), builds a sanity report and can prep/upload a
-WebODM-ready folder. Run `standalone/findgcp-webodm.sh --help` for details.
+WebODM-ready folder. Run `standalone/signa-webodm.sh --help` for details.
 
 ## Languages
 
 The plugin is available in **English** and **German** and follows WebODM's
 active language (gettext, like WebODM itself). The catalogs live in
-[`findgcp/locale/`](findgcp/locale/) and are compiled by
+[`signa/locale/`](signa/locale/) and are compiled by
 [`scripts/compile_messages.py`](scripts/compile_messages.py) (pure Python, no
 gettext toolchain needed) during the plugin build. CI guards that every
 translatable string has a catalog entry. To add a language, copy

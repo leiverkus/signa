@@ -1,4 +1,4 @@
-# .gitignore — Find-GCP/WebODM workflow
+# .gitignore — Signa/WebODM workflow
 # ----------------------------------------------------------------------
 # Field data, photogrammetry outputs and secrets never belong in the repo.
 # Cf. .claudeignore (controls the Claude Code context) — intentionally
@@ -71,7 +71,7 @@ fieldwork/*/raw/
 
 # === Logs & reports (generated) ===
 *.log
-findgcp_*.log
+signa_*.log
 gcp_report.txt
 gcp_list.txt
 !tests/fixtures/*gcp_list*.txt

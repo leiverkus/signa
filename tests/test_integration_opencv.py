@@ -17,7 +17,7 @@ pytest.importorskip("cv2.aruco")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXTURE_PATH = os.path.join(HERE, "fixtures", "make_aruco_fixture.py")
-GCP_DETECT_PATH = os.path.join(HERE, "..", "findgcp", "gcp_detect.py")
+GCP_DETECT_PATH = os.path.join(HERE, "..", "signa", "gcp_detect.py")
 
 
 def _load(path, name):

@@ -1,6 +1,6 @@
-# Custom worker image for the Find-GCP plugin
+# Custom worker image for the Signa plugin
 
-The Find-GCP detection runs in WebODM's **Celery worker**, which needs `cv2`
+The Signa detection runs in WebODM's **Celery worker**, which needs `cv2`
 (OpenCV) importable in its own process (see the main README, "Worker image
 requirement"). These files build a thin image that adds OpenCV and wire it into
 both the `webapp` and `worker` services (they share one image in WebODM's
@@ -10,7 +10,7 @@ compose).
 
 - [`worker.Dockerfile`](worker.Dockerfile) — extends `webodm/webodm_webapp`
   with `opencv-contrib-python-headless`.
-- [`docker-compose.findgcp.yml`](docker-compose.findgcp.yml) — override that
+- [`docker-compose.signa.yml`](docker-compose.signa.yml) — override that
   points `webapp` and `worker` at the custom image.
 
 ## Steps
@@ -25,7 +25,7 @@ compose).
 2. **Build** the custom image, pinning that tag:
 
    ```bash
-   docker build -t webodm-findgcp:local \
+   docker build -t webodm-signa:local \
      --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
      -f docker/worker.Dockerfile docker/
    ```
@@ -36,13 +36,13 @@ compose).
    ```bash
    docker compose -f docker-compose.yml \
      -f docker-compose.nodeodm.yml \
-     -f /path/to/docker-compose.findgcp.yml up -d
+     -f /path/to/docker-compose.signa.yml up -d
    ```
 
    > `webodm.sh` has no flag to inject custom overrides — it assembles a fixed
    > `docker-compose -f …` command. Either run compose manually as above, or
-   > copy `docker-compose.findgcp.yml` next to WebODM's compose files and add
-   > `-f docker-compose.findgcp.yml` to that command.
+   > copy `docker-compose.signa.yml` next to WebODM's compose files and add
+   > `-f docker-compose.signa.yml` to that command.
 
 4. **Verify** OpenCV is importable in the worker:
 

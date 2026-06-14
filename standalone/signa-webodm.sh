@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# findgcp-webodm.sh
+# signa-webodm.sh
 # -----------------
 # Automates the Find-GCP → WebODM workflow for archaeological drone
 # surveys using ArUco markers.
@@ -40,7 +40,7 @@ err()  { printf "\033[1;31m[ERR ]\033[0m %s\n" "$*" >&2; exit 1; }
 
 usage() {
   cat <<EOF
-findgcp-webodm.sh - Find-GCP → WebODM workflow
+signa-webodm.sh - Find-GCP → WebODM workflow
 
 USAGE:
   $0 -i <image_dir> -c <gcp_coords.txt> -o <output_dir> [OPTIONS]
@@ -139,7 +139,7 @@ python3 -c "import cv2.aruco" 2>/dev/null || err "OpenCV-contrib missing. Instal
 
 mkdir -p "$OUTPUT"
 GCP_LIST="$OUTPUT/gcp_list.txt"
-LOG_FILE="$OUTPUT/findgcp_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="$OUTPUT/signa_$(date +%Y%m%d_%H%M%S).log"
 REPORT_FILE="$OUTPUT/gcp_report.txt"
 
 # ---------- 1. GCP detection ----------
@@ -294,7 +294,7 @@ if [[ "$DO_UPLOAD" == "true" ]]; then
   [[ -z "$WEBODM_URL" ]]  && err "--webodm-url missing"
   [[ -z "$WEBODM_USER" ]] && err "--webodm-user missing"
   [[ -z "$WEBODM_PASS" ]] && err "--webodm-pass or env WEBODM_PASS missing"
-  [[ -z "$PROJECT_NAME" ]] && PROJECT_NAME="findgcp-$(date +%Y%m%d-%H%M)"
+  [[ -z "$PROJECT_NAME" ]] && PROJECT_NAME="signa-$(date +%Y%m%d-%H%M)"
 
   command -v jq >/dev/null || err "jq missing (apt install jq / brew install jq)"
 

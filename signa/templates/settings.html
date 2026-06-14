@@ -4,10 +4,10 @@
 {% block content %}
 <link rel="stylesheet" type="text/css" href="style.css?v=6">
 
-<div class="findgcp findgcp-settings">
-  <h2><i class="fa fa-cog"></i> {% trans "Find-GCP — default settings" %}</h2>
+<div class="signa signa-settings">
+  <h2><i class="fa fa-cog"></i> {% trans "Signa — default settings" %}</h2>
   <p class="help">
-    {% blocktrans %}These values pre-fill the detection parameters on the Find-GCP page and in the dashboard <strong>Find-GCP Task</strong> dialog. They are saved per user — you can still override them per run.{% endblocktrans %}
+    {% blocktrans %}These values pre-fill the detection parameters on the Signa page and in the dashboard <strong>Signa Task</strong> dialog. They are saved per user — you can still override them per run.{% endblocktrans %}
   </p>
 
   {% if messages %}
@@ -43,7 +43,7 @@
 
   <h2><i class="fa fa-print"></i> {% trans "Print ArUco markers" %}</h2>
   <p class="help">
-    {% blocktrans %}Generates a print-ready PDF, one marker per page, sized to the page with a one-module white quiet zone. The aiming aid sits on the marker center — the exact point Find-GCP reports — for total station or laser disto measurements. Rule of thumb for drone flights: marker side ≥ 40 × ground resolution (GSD). Print at 100% scale (no fit-to-page) and laminate matte, not glossy.{% endblocktrans %}
+    {% blocktrans %}Generates a print-ready PDF, one marker per page, sized to the page with a one-module white quiet zone. The aiming aid sits on the marker center — the exact point Signa reports — for total station or laser disto measurements. Rule of thumb for drone flights: marker side ≥ 40 × ground resolution (GSD). Print at 100% scale (no fit-to-page) and laminate matte, not glossy.{% endblocktrans %}
   </p>
 
   <form method="post" action="markers/pdf">

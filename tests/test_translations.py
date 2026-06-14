@@ -14,7 +14,7 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FINDGCP = os.path.join(HERE, "..", "findgcp")
+FINDGCP = os.path.join(HERE, "..", "signa")
 PO_PATH = os.path.join(FINDGCP, "locale", "de", "LC_MESSAGES", "django.po")
 COMPILER = os.path.join(HERE, "..", "scripts", "compile_messages.py")
 
@@ -30,7 +30,7 @@ PYTHON_MSGIDS = [
     "This task has no images.",
     "Result not found.",
     "Detection failed in the worker: %(err)s",
-    "Find-GCP default settings saved.",
+    "Signa default settings saved.",
     "A valid EPSG code is required.",
     "EPSG code out of range (1024-999999).",
     "Invalid ArUco dictionary id.",
@@ -78,7 +78,7 @@ def _template_msgids():
 
 def test_all_template_strings_have_catalog_entries():
     missing = sorted(s for s in _template_msgids()
-                     if s not in PO and s not in ("Find-GCP",))  # proper noun
+                     if s not in PO and s not in ("Signa",))  # proper noun
     assert not missing, "template strings missing from de catalog: {}".format(missing)
 
 
@@ -91,7 +91,7 @@ def test_params_errors_match_catalog():
     """Every error string params.py can return must be a catalog msgid, since
     api.py translates them via _(error) at runtime."""
     spec = importlib.util.spec_from_file_location(
-        "findgcp_params", os.path.join(FINDGCP, "params.py"))
+        "signa_params", os.path.join(FINDGCP, "params.py"))
     params = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(params)
 

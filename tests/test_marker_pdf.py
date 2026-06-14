@@ -1,4 +1,4 @@
-"""Tests for findgcp/marker_pdf.py (print-ready ArUco marker sheets).
+"""Tests for signa/marker_pdf.py (print-ready ArUco marker sheets).
 
 Needs real opencv-contrib (like test_integration_opencv.py); skipped when it
 is not installed, CI installs it. marker_pdf.py is loaded standalone — the
@@ -15,11 +15,11 @@ cv2 = pytest.importorskip("cv2")
 pytest.importorskip("cv2.aruco")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODULE_PATH = os.path.join(HERE, "..", "findgcp", "marker_pdf.py")
+MODULE_PATH = os.path.join(HERE, "..", "signa", "marker_pdf.py")
 
 
 def _load():
-    spec = importlib.util.spec_from_file_location("findgcp_marker_pdf", MODULE_PATH)
+    spec = importlib.util.spec_from_file_location("signa_marker_pdf", MODULE_PATH)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -108,7 +108,7 @@ def test_error_strings_are_catalog_msgids():
         "cm", os.path.join(HERE, "..", "scripts", "compile_messages.py"))
     cm = iu.module_from_spec(spec)
     spec.loader.exec_module(cm)
-    po = cm.parse_po(os.path.join(HERE, "..", "findgcp", "locale", "de",
+    po = cm.parse_po(os.path.join(HERE, "..", "signa", "locale", "de",
                                   "LC_MESSAGES", "django.po"))
     for s in (mp._ERR_NO_CV2, mp._ERR_CAPACITY, mp._ERR_SELF_CHECK):
         assert s in po, "marker_pdf error not in de catalog: {!r}".format(s)

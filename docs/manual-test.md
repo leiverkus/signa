@@ -14,7 +14,7 @@ Written for WebODM 3.2.4 (`webodm/webodm_webapp:3.2.4`). Requires WebODM
 in the Celery worker with real OpenCV; the downloaded `gcp_list.txt` was
 byte-for-byte identical (sorted) to the fixture's `expected_gcp_list.txt`
 (24 detections, 5 markers). Notes from that run:
-- After the admin upload, `/plugins/findgcp/` returned 404 intermittently until
+- After the admin upload, `/plugins/signa/` returned 404 intermittently until
   `webapp` was restarted — the plugin cache is per-gunicorn-worker, so a
   `docker restart webapp` is needed for all workers to pick up a hot-uploaded
   plugin.
@@ -26,9 +26,9 @@ byte-for-byte identical (sorted) to the fixture's `expected_gcp_list.txt`
 
 **Self-contained auto-install — 2026-06-10, plugin 1.1.1: PASSED end to end.**
 After a WebODM-Manager update reset the media volume to a clean state (the
-`findgcp` plugin AND its `site-packages` gone; `cv2` absent in both `worker` and
-`webapp`), re-uploading `dist/findgcp-1.1.1.zip`, enabling it and `docker
-restart webapp` re-created `<MEDIA_ROOT>/plugins/findgcp/site-packages` with
+`signa` plugin AND its `site-packages` gone; `cv2` absent in both `worker` and
+`webapp`), re-uploading `dist/signa-1.1.1.zip`, enabling it and `docker
+restart webapp` re-created `<MEDIA_ROOT>/plugins/signa/site-packages` with
 `opencv_contrib_python_headless 4.10.0.84` + `numpy 2.0.2`. With that directory
 on `sys.path` (as `detect_gcps` adds it), the worker imports `cv2 4.10.0` and
 `cv2.aruco` cleanly. A full UI detection run (section 6) then ran on this
@@ -52,10 +52,10 @@ added to the worker's base environment.
 ## 1. Build the plugin zip
 
 ```bash
-./build-plugin.sh           # → dist/findgcp-<version>.zip
+./build-plugin.sh           # → dist/signa-<version>.zip
 ```
 
-- [ ] `dist/findgcp-<version>.zip` exists and unzips to a single `findgcp/` root.
+- [ ] `dist/signa-<version>.zip` exists and unzips to a single `signa/` root.
 
 ## 2. Give the worker `cv2`
 
@@ -77,7 +77,7 @@ error instead. Use 2b for that setup.
 - [x] **Verified live end to end — 2026-06-10, plugin 1.1.1** (see header
       note). Starting from a clean worker (`import cv2` → `ModuleNotFoundError`,
       no `site-packages`), install + enable the plugin and `docker restart
-      webapp` re-created `<MEDIA_ROOT>/plugins/findgcp/site-packages` with a
+      webapp` re-created `<MEDIA_ROOT>/plugins/signa/site-packages` with a
       `cv2*` package (opencv-contrib 4.10.0.84); the worker imports `cv2` +
       `cv2.aruco` via that path with **no** manual `pip install`, and a full
       detection run (section 6) on that auto-installed cv2 produced the expected
@@ -90,12 +90,12 @@ durable image, build and deploy the custom image (see [`../docker/`](../docker/)
 
 ```bash
 # match the tag to your WebODM (docker image ls | grep webodm_webapp)
-docker build -t webodm-findgcp:local \
+docker build -t webodm-signa:local \
   --build-arg WEBODM_VERSION=3.2.4 \
   -f docker/worker.Dockerfile docker/
 ```
 
-Point `webapp` and `worker` at it by adding `docker/docker-compose.findgcp.yml`
+Point `webapp` and `worker` at it by adding `docker/docker-compose.signa.yml`
 as a final `-f` to your compose command, then restart the stack.
 
 - [ ] `docker compose exec worker python -c "import cv2; print(cv2.__version__)"`
@@ -108,9 +108,9 @@ as a final `-f` to your compose command, then restart the stack.
 ## 3. Install the plugin
 
 - [ ] WebODM → **Administration → Plugins → Load Plugin (.zip)** → upload
-      `dist/findgcp-<version>.zip`.
+      `dist/signa-<version>.zip`.
 - [ ] The plugin appears in the list and is **enabled**.
-- [ ] A **Find-GCP** entry appears in the main menu.
+- [ ] A **Signa** entry appears in the main menu.
 - [ ] Opening it renders the page (project/task pickers, file input, parameters).
 
 ## 4. Generate the test dataset
@@ -131,7 +131,7 @@ python tests/fixtures/make_aruco_fixture.py
 
 ## 6. Run detection
 
-- [ ] Open **Find-GCP**, select the project and the task.
+- [ ] Open **Signa**, select the project and the task.
 - [ ] Upload `tests/fixtures/dataset/gcp_coords.txt`.
 - [ ] Leave defaults (EPSG 28191, dict 1, minrate 0.01, ignore 0.33, adjust on).
       The fixture file declares `(EPSG:28191)` in its header, so the EPSG **must**
@@ -183,20 +183,20 @@ garbage line           # malformed
 ## 8. Verify access control (findings #3/#4)
 
 - [ ] As an **anonymous** user (logged out), POSTing to
-      `/api/plugins/findgcp/task/<task_id>/detect` is rejected (401/403).
+      `/api/plugins/signa/task/<task_id>/detect` is rejected (401/403).
 - [ ] A logged-in user **without** `change_project` on that project cannot start
       a run (403/Not found).
-- [ ] Polling `/api/plugins/findgcp/task/<task_id>/check/<celery_id>` as a
+- [ ] Polling `/api/plugins/signa/task/<task_id>/check/<celery_id>` as a
       **different** user returns `{"ready": true, "error": "Result not found."}`.
 
 ## 8a. Verify scratch-project cleanup (incl. a failed DELETE)
 
-The Find-GCP page runs detection on a throwaway scratch project and deletes it
+The Signa page runs detection on a throwaway scratch project and deletes it
 afterwards. The delete path (and its failure handling) has no browser-automated
 test, so check it here once.
 
-- [ ] **Happy path:** run a detection from the Find-GCP page, then confirm in the
-      project list that **no** `Find-GCP detection (scratch)` project lingers.
+- [ ] **Happy path:** run a detection from the Signa page, then confirm in the
+      project list that **no** `Signa detection (scratch)` project lingers.
 - [ ] **Simulated DELETE failure:** in DevTools, block the delete request
       (Network → request blocking for `DELETE /api/projects/*`, or set the tab
       offline right as the summary appears), then run a detection.
@@ -211,10 +211,10 @@ test, so check it here once.
 
 ## 9. Print ArUco marker sheets (settings page)
 
-The **Find-GCP Settings** page generates print-ready marker PDFs. This runs in
+The **Signa Settings** page generates print-ready marker PDFs. This runs in
 the `webapp` process (not the worker) and uses OpenCV + Pillow there.
 
-- [ ] On **Find-GCP Settings**, the **Print ArUco markers** section renders with
+- [ ] On **Signa Settings**, the **Print ArUco markers** section renders with
       a non-empty **ArUco dictionary** dropdown (pre-selected to your saved
       default) and all controls (page size, id range, aiming aid, gray).
 - [ ] On a German UI, the whole section is German (label *ArUco-Marker drucken*,
@@ -237,7 +237,7 @@ the `webapp` process (not the worker) and uses OpenCV + Pillow there.
 ## 10. Cleanup
 
 - [ ] Remove the test task/project if desired.
-- [ ] To uninstall: **Administration → Plugins → Find-GCP → Delete**.
+- [ ] To uninstall: **Administration → Plugins → Signa → Delete**.
 
 ---
 

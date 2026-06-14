@@ -1,7 +1,7 @@
 # Self-contained single-host setup.
 #
 # WebODM installs this into the plugin's per-plugin site-packages
-# (<MEDIA_ROOT>/plugins/findgcp/site-packages) when the plugin is enabled. That
+# (<MEDIA_ROOT>/plugins/signa/site-packages) when the plugin is enabled. That
 # path lives on the media volume, which the webapp AND the worker share, so the
 # Celery worker — where detection actually runs — can import cv2 from it
 # (gcp_detect.py adds the path to sys.path as a fallback). numpy already ships

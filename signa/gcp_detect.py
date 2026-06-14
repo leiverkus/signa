@@ -34,7 +34,7 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
     # (Celery worker) process. Two supported ways, tried in order:
     #   1. cv2+aruco is in the worker image — the robust path (see docker/).
     #   2. self-contained single-host: WebODM installs the plugin's
-    #      requirements.txt into <MEDIA_ROOT>/plugins/findgcp/site-packages, on
+    #      requirements.txt into <MEDIA_ROOT>/plugins/signa/site-packages, on
     #      the media volume shared with this worker. We add that to sys.path and
     #      retry. numpy is already loaded by WebODM, so cv2 reuses it.
     # We require BOTH cv2 and cv2.aruco, so a base opencv-python (no aruco)
@@ -56,10 +56,10 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
         site_packages = []
         try:
             from django.conf import settings as _dj
-            site_packages.append(os.path.join(_dj.MEDIA_ROOT, "plugins", "findgcp", "site-packages"))
+            site_packages.append(os.path.join(_dj.MEDIA_ROOT, "plugins", "signa", "site-packages"))
         except Exception:
             pass
-        site_packages.append("/webodm/app/media/plugins/findgcp/site-packages")
+        site_packages.append("/webodm/app/media/plugins/signa/site-packages")
         for _sp in site_packages:
             if os.path.isdir(_sp) and _sp not in sys.path:
                 sys.path.insert(0, _sp)

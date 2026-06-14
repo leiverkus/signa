@@ -1,5 +1,5 @@
 """
-Tests for findgcp/gcp_detect.py.
+Tests for signa/gcp_detect.py.
 
 The key test (test_self_contained_under_worker_eval) reproduces exactly how
 WebODM runs the function in the worker: app/plugins/worker.py does
@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-GCP_DETECT_PATH = os.path.join(HERE, "..", "findgcp", "gcp_detect.py")
+GCP_DETECT_PATH = os.path.join(HERE, "..", "signa", "gcp_detect.py")
 
 
 def load_detect_source_fn():

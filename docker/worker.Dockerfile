@@ -1,11 +1,11 @@
-# Custom WebODM image with OpenCV, for the Find-GCP plugin.
+# Custom WebODM image with OpenCV, for the Signa plugin.
 #
-# Why: the Find-GCP detection runs in the Celery WORKER via WebODM's
+# Why: the Signa detection runs in the Celery WORKER via WebODM's
 # run_function_async -> eval_async (app/plugins/worker.py), which compiles the
 # function source in a bare namespace in the worker process. So cv2 must exist
 # in the image the worker runs. WebODM's docker-compose uses the SAME image for
 # both the `webapp` and `worker` services: webodm/webodm_webapp. We extend it
-# here and use this image for both services (see docker-compose.findgcp.yml).
+# here and use this image for both services (see docker-compose.signa.yml).
 #
 # numpy already ships with WebODM, so we only add OpenCV (headless = no GUI/X11).
 #
@@ -16,7 +16,7 @@
 # drift. Published webapp tags include 3.2.0 … 3.2.4.
 #
 # Build:
-#   docker build -t webodm-findgcp:local \
+#   docker build -t webodm-signa:local \
 #     --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
 #     -f docker/worker.Dockerfile docker/
 

@@ -19,7 +19,7 @@ Requires opencv-contrib-python (cv2.aruco) and numpy.
 
 Used by tests/test_integration_opencv.py (real-OpenCV round trip) and by the
 manual end-to-end test in docs/manual-test.md (upload the JPGs as a WebODM task,
-upload gcp_coords.txt in the Find-GCP page, run detection, compare the download
+upload gcp_coords.txt in the Signa page, run detection, compare the download
 against expected_gcp_list.txt).
 """
 
@@ -90,7 +90,7 @@ def render_dataset(outdir):
 def _load_detect():
     """Load detect_gcps the way the WebODM worker does (from source)."""
     here = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(here, "..", "..", "findgcp", "gcp_detect.py")
+    path = os.path.join(here, "..", "..", "signa", "gcp_detect.py")
     spec = importlib.util.spec_from_file_location("gcp_detect_std", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

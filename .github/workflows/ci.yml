@@ -14,7 +14,7 @@ jobs:
       - name: bash syntax check
         run: |
           bash -n build-plugin.sh
-          bash -n standalone/findgcp-webodm.sh
+          bash -n standalone/signa-webodm.sh
 
       - name: shellcheck
         uses: ludeeus/action-shellcheck@2.0.0
@@ -30,10 +30,10 @@ jobs:
           python-version: '3.10'
 
       - name: Compile-check plugin + script sources
-        run: python -m compileall -q findgcp scripts
+        run: python -m compileall -q signa scripts
 
       - name: Validate manifest.json
-        run: python3 -c "import json; m=json.load(open('findgcp/manifest.json')); assert m['name'] and m['version']; print('manifest ok:', m['name'], m['version'])"
+        run: python3 -c "import json; m=json.load(open('signa/manifest.json')); assert m['name'] and m['version']; print('manifest ok:', m['name'], m['version'])"
 
       - name: Install test deps
         run: pip install "numpy>=1.23,<3" "opencv-contrib-python-headless==4.10.0.84" pytest
@@ -54,5 +54,5 @@ jobs:
       - name: Upload zip artifact
         uses: actions/upload-artifact@v7
         with:
-          name: findgcp-plugin-zip
-          path: dist/findgcp-*.zip
+          name: signa-plugin-zip
+          path: dist/signa-*.zip

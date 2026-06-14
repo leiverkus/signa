@@ -1,33 +1,33 @@
 #!/usr/bin/env python3
 """
-findgcp-singlepass.py — single-pass GCP workflow against a live WebODM.
+signa-singlepass.py — single-pass GCP workflow against a live WebODM.
 
-Detects ArUco GCPs on the SERVER (via the Find-GCP plugin) and feeds the result
+Detects ArUco GCPs on the SERVER (via the Signa plugin) and feeds the result
 into the SAME processing run, so a georeferenced model is produced in one pass:
 
     login -> create(partial) -> upload(images) -> detect -> upload(gcp_list) -> commit
 
-Auth: a Django **session** + CSRF token (via /login/). The Find-GCP plugin API
+Auth: a Django **session** + CSRF token (via /login/). The Signa plugin API
 is dispatched by WebODM's `api_view_handler`, a plain Django view that is NOT
 csrf_exempt (app/api/urls.py), so a JWT token alone is rejected with HTTP 403
 "CSRF verification failed". Session + X-CSRFToken is what the WebODM frontend
 itself uses, and it works for the core task endpoints too.
 
 Needs:
-  - WebODM >= 2.9.5 with the Find-GCP plugin installed and enabled,
+  - WebODM >= 2.9.5 with the Signa plugin installed and enabled,
   - a worker that has OpenCV (cv2) — see docker/.
 
-Unlike standalone/findgcp-webodm.sh (which detects LOCALLY and needs local
+Unlike standalone/signa-webodm.sh (which detects LOCALLY and needs local
 OpenCV/Find-GCP), this script runs detection on the server.
 
 stdlib only — no pip install required.
 
 Example:
-    ./scripts/findgcp-singlepass.py \\
+    ./scripts/signa-singlepass.py \\
         --url http://localhost:8000 --user me --password secret \\
-        --create-project "findgcp-e2e" \\
-        --images ~/Downloads/findgcp-fixture \\
-        --coords ~/Downloads/findgcp-fixture/gcp_coords.txt \\
+        --create-project "signa-e2e" \\
+        --images ~/Downloads/signa-fixture \\
+        --coords ~/Downloads/signa-fixture/gcp_coords.txt \\
         --epsg 28191 --name "fixture run" --dry-run
 """
 
@@ -69,7 +69,7 @@ def _encode_multipart(fields, files):
     files:  list of (field_name, filename, bytes)
     Returns (content_type, body_bytes).
     """
-    boundary = "----findgcp{}".format(uuid.uuid4().hex)
+    boundary = "----signa{}".format(uuid.uuid4().hex)
     crlf = b"\r\n"
     out = []
     for name, value in fields.items():
@@ -217,7 +217,7 @@ class WebODM:
         fields = {"epsg": epsg, "dict": dict_id, "minrate": minrate,
                   "ignore": ignore, "adjust": "true" if adjust else "false"}
         started = self.post_multipart(
-            "/api/plugins/findgcp/task/{}/detect".format(task_id),
+            "/api/plugins/signa/task/{}/detect".format(task_id),
             fields, [("coords", "gcp_coords.txt", coords)])
         if started.get("error"):
             raise RuntimeError("detection rejected: {}".format(started["error"]))
@@ -227,7 +227,7 @@ class WebODM:
 
         deadline = time.time() + poll_timeout
         while time.time() < deadline:
-            res = self.get("/api/plugins/findgcp/task/{}/check/{}".format(task_id, cid))
+            res = self.get("/api/plugins/signa/task/{}/check/{}".format(task_id, cid))
             if not res.get("ready"):
                 time.sleep(poll_interval)
                 continue
@@ -247,7 +247,7 @@ def find_images(images_arg):
 def main():
     ap = argparse.ArgumentParser(
         description="Single-pass GCP workflow against a live WebODM "
-                    "(server-side ArUco detection via the Find-GCP plugin).")
+                    "(server-side ArUco detection via the Signa plugin).")
     ap.add_argument("--url", required=True, help="WebODM base URL, e.g. http://localhost:8000")
     ap.add_argument("--user", required=True, help="WebODM username")
     ap.add_argument("--password", default=os.environ.get("WEBODM_PASS"),

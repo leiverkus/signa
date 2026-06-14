@@ -1,15 +1,15 @@
 # Compose override that points WebODM's webapp and worker at the custom image
-# built from worker.Dockerfile (which adds OpenCV for the Find-GCP plugin).
+# built from worker.Dockerfile (which adds OpenCV for the Signa plugin).
 #
 # Both services must use the same image, since the worker runs the same code as
 # the webapp. Merge this file AFTER WebODM's own compose files so it overrides
 # the `image:` of those two services.
 #
-# 1) Build the image. The `webodm-findgcp:local` tag is just a local name — it
+# 1) Build the image. The `webodm-signa:local` tag is just a local name — it
 #    need not match any version; only the build `-t` and the `image:` keys below
 #    must be identical. The meaningful pin is WEBODM_VERSION, set to your WebODM
 #    image tag (never `latest`):
-#      docker build -t webodm-findgcp:local \
+#      docker build -t webodm-signa:local \
 #        --build-arg WEBODM_VERSION=<your-webodm-image-tag> \
 #        -f docker/worker.Dockerfile docker/
 #
@@ -17,11 +17,11 @@
 #    same compose invocation WebODM uses, e.g.:
 #      docker compose -f docker-compose.yml \
 #        -f docker-compose.nodeodm.yml \
-#        -f /path/to/docker-compose.findgcp.yml up -d
+#        -f /path/to/docker-compose.signa.yml up -d
 #
 #    webodm.sh has no flag to inject custom overrides: it assembles a fixed
 #    `docker-compose -f ...` command (see its `command=` near line 431). Either
-#    run compose manually as above, or add `-f docker-compose.findgcp.yml` to
+#    run compose manually as above, or add `-f docker-compose.signa.yml` to
 #    that command (copy this file into the WebODM directory first).
 #
 # No top-level `version:` key — it is obsolete in Compose v2 and merges fine
@@ -29,6 +29,6 @@
 
 services:
   webapp:
-    image: webodm-findgcp:local
+    image: webodm-signa:local
   worker:
-    image: webodm-findgcp:local
+    image: webodm-signa:local

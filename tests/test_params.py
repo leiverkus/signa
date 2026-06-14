@@ -1,4 +1,4 @@
-"""Tests for findgcp/params.py (detect-endpoint parameter validation).
+"""Tests for signa/params.py (detect-endpoint parameter validation).
 
 params.py is Django-free on purpose; we load it standalone (the plugin package
 __init__ imports WebODM, which is absent in CI).
@@ -8,11 +8,11 @@ import importlib.util
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PARAMS_PATH = os.path.join(HERE, "..", "findgcp", "params.py")
+PARAMS_PATH = os.path.join(HERE, "..", "signa", "params.py")
 
 
 def _load():
-    spec = importlib.util.spec_from_file_location("findgcp_params", PARAMS_PATH)
+    spec = importlib.util.spec_from_file_location("signa_params", PARAMS_PATH)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

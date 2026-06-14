@@ -1,10 +1,10 @@
-# German translations for the Find-GCP WebODM plugin.
-# msgids must match the source strings in findgcp/templates/*.html,
-# findgcp/plugin.py, findgcp/api.py and findgcp/params.py exactly —
+# German translations for the Signa WebODM plugin.
+# msgids must match the source strings in signa/templates/*.html,
+# signa/plugin.py, signa/api.py and signa/params.py exactly —
 # tests/test_translations.py guards against drift.
 msgid ""
 msgstr ""
-"Project-Id-Version: findgcp\n"
+"Project-Id-Version: signa\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -12,8 +12,8 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: templates/app.html
-msgid "Find-GCP — ArUco GCP detection"
-msgstr "Find-GCP — ArUco-GCP-Erkennung"
+msgid "Signa — ArUco GCP detection"
+msgstr "Signa — ArUco-GCP-Erkennung"
 
 #: templates/app.html
 msgid ""
@@ -36,8 +36,8 @@ msgid "button on the dashboard."
 msgstr "im Dashboard."
 
 #: templates/app.html — proper noun (button label), kept as-is
-msgid "Find-GCP Task"
-msgstr "Find-GCP Task"
+msgid "Signa Task"
+msgstr "Signa Task"
 
 #: templates/app.html
 msgid "Drop images here, or click to choose"
@@ -156,24 +156,24 @@ msgid "Uploading images…"
 msgstr "Lade Bilder hoch…"
 
 #: templates/settings.html
-msgid "Find-GCP — default settings"
-msgstr "Find-GCP — Standardeinstellungen"
+msgid "Signa — default settings"
+msgstr "Signa — Standardeinstellungen"
 
 #: templates/settings.html (blocktrans)
-msgid "These values pre-fill the detection parameters on the Find-GCP page and in the dashboard <strong>Find-GCP Task</strong> dialog. They are saved per user — you can still override them per run."
-msgstr "Diese Werte füllen die Erkennungsparameter auf der Find-GCP-Seite und im Dashboard-Dialog <strong>Find-GCP Task</strong> vor. Sie werden pro Benutzer gespeichert — pro Lauf können sie weiterhin überschrieben werden."
+msgid "These values pre-fill the detection parameters on the Signa page and in the dashboard <strong>Signa Task</strong> dialog. They are saved per user — you can still override them per run."
+msgstr "Diese Werte füllen die Erkennungsparameter auf der Signa-Seite und im Dashboard-Dialog <strong>Signa Task</strong> vor. Sie werden pro Benutzer gespeichert — pro Lauf können sie weiterhin überschrieben werden."
 
 #: templates/settings.html
 msgid "Save defaults"
 msgstr "Standardwerte speichern"
 
 #: plugin.py (menu)
-msgid "Find-GCP Settings"
-msgstr "Find-GCP-Einstellungen"
+msgid "Signa Settings"
+msgstr "Signa-Einstellungen"
 
 #: plugin.py
-msgid "Find-GCP default settings saved."
-msgstr "Find-GCP-Standardeinstellungen gespeichert."
+msgid "Signa default settings saved."
+msgstr "Signa-Standardeinstellungen gespeichert."
 
 #: api.py
 msgid "No GCP coordinate file uploaded."
@@ -236,8 +236,8 @@ msgid "Print ArUco markers"
 msgstr "ArUco-Marker drucken"
 
 #: templates/settings.html (blocktrans)
-msgid "Generates a print-ready PDF, one marker per page, sized to the page with a one-module white quiet zone. The aiming aid sits on the marker center — the exact point Find-GCP reports — for total station or laser disto measurements. Rule of thumb for drone flights: marker side ≥ 40 × ground resolution (GSD). Print at 100% scale (no fit-to-page) and laminate matte, not glossy."
-msgstr "Erzeugt ein druckfertiges PDF, ein Marker pro Seite, an die Seitengröße angepasst mit einer weißen Ruhezone von einer Modulbreite. Die Zielhilfe liegt auf dem Markerzentrum — exakt dem Punkt, den Find-GCP meldet — für Messungen mit Totalstation oder Laser-Disto. Faustregel für Drohnenflüge: Markerseite ≥ 40 × Bodenauflösung (GSD). Mit 100 % Skalierung drucken (nicht „an Seite anpassen“) und matt laminieren, nicht glänzend."
+msgid "Generates a print-ready PDF, one marker per page, sized to the page with a one-module white quiet zone. The aiming aid sits on the marker center — the exact point Signa reports — for total station or laser disto measurements. Rule of thumb for drone flights: marker side ≥ 40 × ground resolution (GSD). Print at 100% scale (no fit-to-page) and laminate matte, not glossy."
+msgstr "Erzeugt ein druckfertiges PDF, ein Marker pro Seite, an die Seitengröße angepasst mit einer weißen Ruhezone von einer Modulbreite. Die Zielhilfe liegt auf dem Markerzentrum — exakt dem Punkt, den Signa meldet — für Messungen mit Totalstation oder Laser-Disto. Faustregel für Drohnenflüge: Markerseite ≥ 40 × Bodenauflösung (GSD). Mit 100 % Skalierung drucken (nicht „an Seite anpassen“) und matt laminieren, nicht glänzend."
 
 #: templates/settings.html
 msgid "Page size (DIN A)"

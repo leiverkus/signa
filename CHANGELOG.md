@@ -11,13 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Print-ready ArUco marker sheets from the settings page.** A new "Print
-  ArUco markers" form (Find-GCP Settings) generates a PDF with one marker per
+  ArUco markers" form (Signa Settings) generates a PDF with one marker per
   page: any supported dictionary (pre-selected from the user's default), a
   free id range (capacity-checked per dictionary, max 100 pages), DIN page
   sizes A6–A2, a gray variant against burnt-in markers in strong sunlight, and
   an optional center aiming aid for total station / laser disto work (red
   cross, red cross with white halo, or red dot with white ring — placed on the
-  exact point Find-GCP reports as the GCP). Markers are sized to the page with
+  exact point Signa reports as the GCP). Markers are sized to the page with
   a one-module quiet zone; each page carries a small meta line (dictionary,
   printed size, `top ^`) and a large, bold marker number readable from standing
   height with the sheet on the ground. Every page is run through the ArUco
@@ -25,26 +25,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never be produced. The PDF is assembled by a minimal built-in writer — no new
   dependencies; labels use Pillow (already a WebODM dependency) so the typeface
   matches the standalone generator, with an OpenCV/Hershey fallback if Pillow is
-  unavailable (`findgcp/marker_pdf.py`, endpoint `plugins/findgcp/markers/pdf`).
+  unavailable (`signa/marker_pdf.py`, endpoint `plugins/signa/markers/pdf`).
 
 ### Changed
-- `build-plugin.sh` now clears previously built `dist/findgcp-*.zip` before
+- `build-plugin.sh` now clears previously built `dist/signa-*.zip` before
   packaging, so only the current version's artifact remains.
 
 ## [1.2.0] - 2026-06-11
 
 ### Added
 - **All ArUco dictionaries are now selectable in the UI.** The settings form and
-  both task dialogs (Find-GCP page + dashboard button) previously offered only
+  both task dialogs (Signa page + dashboard button) previously offered only
   `1 — DICT_4X4_100` and `99 — custom 3×3`, while the backend already accepted
   every OpenCV predefined dictionary. They now list all 21 predefined dictionaries
   (ids 0–20: the 4×4/5×5/6×6/7×7 families, `DICT_ARUCO_ORIGINAL`, and the four
   AprilTag families) plus the custom 3×3 (99). The list lives once in
-  `findgcp/params.py` (`DICT_CHOICES`), from which the form, the server-rendered
+  `signa/params.py` (`DICT_CHOICES`), from which the form, the server-rendered
   dropdown and the API's accepted-id set are all derived, so they can't drift.
 
 ### Fixed
-- CI: resolved two `shellcheck` findings in `standalone/findgcp-webodm.sh`
+- CI: resolved two `shellcheck` findings in `standalone/signa-webodm.sh`
   (SC2206 intentional-glob directive, SC2015 `&&`/`||` rewritten as if-then-else).
   Lint-only; the helper script is not part of the plugin zip.
 
@@ -71,7 +71,7 @@ re-fetch the updated dashboard script.
   settings form rejected values far below the "never below 0.005" guidance
   (down to `0.0001` / any value > 0), which invited massive false positives.
   Both now clamp to `[0.005, 1]`.
-- **The Find-GCP page no longer leaves scratch projects behind.** A `pagehide`
+- **The Signa page no longer leaves scratch projects behind.** A `pagehide`
   handler removes the scratch project (keepalive DELETE) if the tab is closed or
   navigated away mid-run, and `cleanup()` now surfaces a failed delete instead of
   treating any HTTP error as success. A failed cleanup is tracked in a separate
@@ -79,7 +79,7 @@ re-fetch the updated dashboard script.
   the start of the next run and on unload, and shown as a UI notice listing the
   affected project id(s) — not console-only.
 - **A lost response during `commit` no longer deletes an already-started task.**
-  Both the dashboard dialog and `scripts/findgcp-singlepass.py` now mark the task
+  Both the dashboard dialog and `scripts/signa-singlepass.py` now mark the task
   as kept *before* issuing the commit request, so a network drop or cancel while
   the commit is in flight (where the server may already have started processing)
   leaves the task intact instead of cleaning it up. A genuinely rejected commit
@@ -103,19 +103,19 @@ Robustness fixes from a code review (no behaviour change to a successful run).
   be satisfied, the clear "fix the worker image" error) instead of an uncaught
   `ImportError`. We deliberately do **not** purge/reimport a cached `cv2` —
   OpenCV's bootstrap is not re-entrant, so a runtime swap is fragile.
-- **Cancelling the dashboard "Find-GCP Task" dialog now aborts the run.** Closing
+- **Cancelling the dashboard "Signa Task" dialog now aborts the run.** Closing
   or cancelling mid-flight aborts in-flight requests and deletes the partial task
   it created, instead of letting the workflow keep running and commit a task in
   the background.
 - **Orphaned partial tasks are cleaned up on error.** Both the dashboard button
-  and `scripts/findgcp-singlepass.py` now remove the half-built partial task if a
+  and `scripts/signa-singlepass.py` now remove the half-built partial task if a
   step fails (the script adds `--keep-on-error` to opt out for debugging).
 - **Browser polling has a 30-minute safety timeout.** The dashboard dialog and
-  the Find-GCP menu page no longer poll forever if the worker gets stuck.
+  the Signa menu page no longer poll forever if the worker gets stuck.
 
 ### Docs
 - Aligned the custom worker-image tag to a stable, version-independent
-  `webodm-findgcp:local` across the README, `docker/`, and the manual-test doc
+  `webodm-signa:local` across the README, `docker/`, and the manual-test doc
   (it previously drifted between `0.2.0` and `1.0.0`).
 - `docs/single-pass-design.md`: marked implemented (was "design only") and
   removed the discarded JWT step from the API sequence (the plugin endpoints
@@ -158,7 +158,7 @@ settings, and German/English UI. No functional changes versus 0.6.3.
 
 ### Fixed
 - German grammatical gender for "Task" (masculine "der Task"): the dialog title
-  is now "Neuer Task mit Find-GCP", and "Dieser Task hat keine Bilder." /
+  is now "Neuer Task mit Signa", and "Dieser Task hat keine Bilder." /
   "ein temporärer Task" in the catalog.
 
 ## [0.6.2] - 2026-06-10
@@ -177,7 +177,7 @@ settings, and German/English UI. No functional changes versus 0.6.3.
 
 ### Added
 - Help texts for **minrate** and **ignore** wherever they can be changed (the
-  Find-GCP page, the settings form, and the dashboard dialog), in both
+  Signa page, the settings form, and the dashboard dialog), in both
   languages: what the parameter means and which values are sensible (minrate:
   lower stepwise 0.01 → 0.008 → 0.005, never below 0.005, markers ≥ 20×20 px;
   ignore: 0.13 OpenCV default up to 0.33 in strong sunlight).
@@ -192,13 +192,13 @@ settings, and German/English UI. No functional changes versus 0.6.3.
 ### Added
 - **German translation (de)** alongside English, using the same gettext
   mechanism as WebODM itself. The plugin ships its own catalog
-  (`findgcp/locale/de/LC_MESSAGES/django.po`/`.mo`) and appends its locale dir
+  (`signa/locale/de/LC_MESSAGES/django.po`/`.mo`) and appends its locale dir
   to Django's `LOCALE_PATHS` at plugin registration (WebODM has no official
   plugin-translation support; `register()` runs at worker boot, and the
   per-language catalog cache is reset so the merged catalog always applies).
   Covers both pages, menu entries, the settings form and all API/validation
   error messages.
-- The dashboard **Find-GCP Task** dialog carries its own small dictionary
+- The dashboard **Signa Task** dialog carries its own small dictionary
   (WebODM's JS catalog is restricted to `packages=['app']`); language is taken
   from Django's language cookie with a browser-language fallback.
 - `scripts/compile_messages.py`: pure-Python `.po → .mo` compiler (no gettext
@@ -210,17 +210,17 @@ settings, and German/English UI. No functional changes versus 0.6.3.
 ## [0.5.0] - 2026-06-10
 
 ### Added
-- **Find-GCP Settings page** (new menu entry): set the default detection
+- **Signa Settings page** (new menu entry): set the default detection
   parameters (EPSG, ArUco dictionary, minrate, ignore, color adjustment) per
   user. Saved in the plugin's per-user datastore. Both detection UIs pre-fill
-  from these defaults — the Find-GCP page (server-rendered) and the dashboard
-  **Find-GCP Task** dialog (via a new `GET /api/plugins/findgcp/settings`
+  from these defaults — the Signa page (server-rendered) and the dashboard
+  **Signa Task** dialog (via a new `GET /api/plugins/signa/settings`
   endpoint). Values can still be overridden per run.
 
 ## [0.4.0] - 2026-06-10
 
 ### Changed
-- **The Find-GCP menu page is now a standalone detection tool** (like the core
+- **The Signa menu page is now a standalone detection tool** (like the core
   `posm-gcpi` GCP interface, but automatic): drop drone images + a coordinate
   file, run ArUco detection, and **download `gcp_list.txt`** — no existing task
   required. It creates a scratch task on the server for the detection and
@@ -239,13 +239,13 @@ reprocess. Grounded in WebODM's verified `partial → upload → commit` task AP
 (see `docs/single-pass-design.md`).
 
 ### Added
-- **"Find-GCP task" dashboard button** (`findgcp/public/load_buttons.js`, via
+- **"Signa task" dashboard button** (`signa/public/load_buttons.js`, via
   `PluginsAPI.Dashboard.addNewTaskButton`): a second new-task entry point that
   opens a dialog (images + coordinate file + params) and runs the single-pass
   flow in the browser — `create(partial) → upload → detect → upload(gcp_list) →
   commit`. Build-free (plain `React.createElement` + a vanilla dialog; no
   JSX/webpack). Live-verified end to end against WebODM 3.2.4.
-- **Headless single-pass script** (`scripts/findgcp-singlepass.py`, stdlib only):
+- **Headless single-pass script** (`scripts/signa-singlepass.py`, stdlib only):
   the same sequence for automation. Server-side detection via the plugin (no
   local OpenCV). `--dry-run` stops before commit. Uses a Django session +
   `X-CSRFToken` (the plugin API is not csrf_exempt, so JWT alone is rejected).
@@ -295,7 +295,7 @@ exactly (see `docs/manual-test.md`).
 
 ### Added
 - `docker/` — a `worker.Dockerfile` extending `webodm/webodm_webapp` with
-  OpenCV and a `docker-compose.findgcp.yml` override (with `docker/README.md`),
+  OpenCV and a `docker-compose.signa.yml` override (with `docker/README.md`),
   so the worker has `cv2` reproducibly.
 - Unit test suite (11 tests, OpenCV mocked). The key test reproduces WebODM's
   worker execution model (compile `detect_gcps` from source in an empty
@@ -332,7 +332,7 @@ exactly (see `docs/manual-test.md`).
 - Reproducible Docker build: `worker.Dockerfile` defaults `WEBODM_VERSION` to a
   concrete tag (`3.2.4`, override to match your install) instead of `latest`,
   and pins `opencv-contrib-python-headless==4.10.0.84`. Removed the obsolete
-  `version:` key from `docker-compose.findgcp.yml`.
+  `version:` key from `docker-compose.signa.yml`.
 - Pinned `ludeeus/action-shellcheck@2.0.0` (was `@master`).
 - CI now runs the unit tests in addition to shellcheck, compile-check and the
   test build.
@@ -343,7 +343,7 @@ exactly (see `docs/manual-test.md`).
 Initial WebODM plugin.
 
 ### Added
-- WebODM plugin (`findgcp/`) following the core-plugin conventions: menu entry,
+- WebODM plugin (`signa/`) following the core-plugin conventions: menu entry,
   app page and API mount points, single-root-directory release zip.
 - Automatic ArUco GCP detection ported from
   [Find-GCP](https://github.com/zsiki/Find-GCP) (`gcp_find.py`): custom 3×3
@@ -351,22 +351,22 @@ Initial WebODM plugin.
   LUT, corner-centroid pixel coordinates, ODM `gcp_list.txt` output.
 - Browser UI to pick a project/task, upload coordinates, set parameters, run
   detection and review a summary.
-- `build-plugin.sh` to package `dist/findgcp-<version>.zip`, and a GitHub
+- `build-plugin.sh` to package `dist/signa-<version>.zip`, and a GitHub
   Actions workflow to publish a release on a `v*` tag.
 - Standalone Bash CLI retained under `standalone/`.
 
-[Unreleased]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.2.0...HEAD
-[1.2.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.1.2...v1.2.0
-[1.1.2]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.3...v1.0.0
-[0.6.3]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.2...v0.6.3
-[0.6.2]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.1...v0.6.2
-[0.6.1]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.6.0...v0.6.1
-[0.6.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/leiverkus/find-gcp-webodm-plugin/releases/tag/v0.1.0
+[Unreleased]: https://github.com/leiverkus/signa-webodm-plugin/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v1.1.2...v1.2.0
+[1.1.2]: https://github.com/leiverkus/signa-webodm-plugin/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/leiverkus/signa-webodm-plugin/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.6.3...v1.0.0
+[0.6.3]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.6.2...v0.6.3
+[0.6.2]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/leiverkus/signa-webodm-plugin/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/leiverkus/signa-webodm-plugin/releases/tag/v0.1.0

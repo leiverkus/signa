@@ -1,4 +1,4 @@
-"""Minimal fakes for the WebODM / DRF / Django surface that findgcp/api.py imports.
+"""Minimal fakes for the WebODM / DRF / Django surface that signa/api.py imports.
 
 Lets the API view logic (auth gating, change_project enforcement, run-binding,
 permission re-check, celery error handling) be unit-tested in CI without a
@@ -6,7 +6,7 @@ running WebODM — the same technique used to mock cv2 for detect_gcps.
 
 `install()` registers the fakes in sys.modules and returns a `Registry` used to
 configure per-test state (tasks, celery results, the datastore). It must be
-called before importing findgcp.api.
+called before importing signa.api.
 """
 
 import sys

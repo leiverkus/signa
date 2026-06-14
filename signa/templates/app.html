@@ -5,15 +5,15 @@
 {% csrf_token %}
 <link rel="stylesheet" type="text/css" href="style.css?v=6">
 
-<div class="findgcp">
-  <h2><i class="fa fa-map-marker-alt"></i> {% trans "Find-GCP — ArUco GCP detection" %}</h2>
+<div class="signa">
+  <h2><i class="fa fa-map-marker-alt"></i> {% trans "Signa — ArUco GCP detection" %}</h2>
   <p class="help">
     {% blocktrans %}Drop drone images and a GCP coordinate file, run automatic ArUco detection, and download an ODM-compatible <code>gcp_list.txt</code>. A scratch task is created on the server for the detection and deleted again afterwards — nothing is processed.{% endblocktrans %}
     {% trans "To detect and georeference in one processing run instead, use the" %}
-    <strong>{% trans "Find-GCP Task" %}</strong> {% trans "button on the dashboard." %}
+    <strong>{% trans "Signa Task" %}</strong> {% trans "button on the dashboard." %}
   </p>
 
-  <form id="findgcp-form" onsubmit="return false;">
+  <form id="signa-form" onsubmit="return false;">
     <div id="dropzone" class="dropzone">
       <i class="fa fa-images fa-2x"></i>
       <div class="dz-text">{% trans "Drop images here, or click to choose" %}</div>
@@ -104,7 +104,7 @@
   function rememberOrphan(pid, status){
     if (pendingCleanup.indexOf(pid) === -1) pendingCleanup.push(pid);
     if (window.console){
-      console.warn("Find-GCP: scratch project " + pid + " could not be deleted (HTTP " +
+      console.warn("Signa: scratch project " + pid + " could not be deleted (HTTP " +
                    status + ") — will retry on the next run, or remove it manually.");
     }
   }
@@ -215,7 +215,7 @@
   var POLL_TIMEOUT_MS = 30 * 60 * 1000;
 
   function pollDetect(taskId, celeryId){
-    var url = "/api/plugins/findgcp/task/" + taskId + "/check/" + celeryId;
+    var url = "/api/plugins/signa/task/" + taskId + "/check/" + celeryId;
     var deadline = Date.now() + POLL_TIMEOUT_MS;
     return new Promise(function(resolve, reject){
       (function tick(){
@@ -251,10 +251,10 @@
     }
 
     setStatus('<i class="fa fa-spinner fa-spin"></i> {% trans "Preparing…" %}');
-    var pfd = new FormData(); pfd.append("name", "Find-GCP detection (scratch)");
+    var pfd = new FormData(); pfd.append("name", "Signa detection (scratch)");
     postMultipart("/api/projects/", pfd).then(function(p){
       scratchProjectId = p.id;
-      var tfd = new FormData(); tfd.append("partial", "true"); tfd.append("name", "findgcp-detect");
+      var tfd = new FormData(); tfd.append("partial", "true"); tfd.append("name", "signa-detect");
       return postMultipart("/api/projects/" + scratchProjectId + "/tasks/", tfd);
     }).then(function(task){
       var taskId = task.id;
@@ -275,7 +275,7 @@
         fd.append("minrate", $("minrate").value);
         fd.append("ignore", $("ignore").value);
         fd.append("adjust", $("adjust").checked ? "true" : "false");
-        return postMultipart("/api/plugins/findgcp/task/" + taskId + "/detect", fd);
+        return postMultipart("/api/plugins/signa/task/" + taskId + "/detect", fd);
       }).then(function(started){
         if (started.error) throw new Error(started.error);
         return pollDetect(taskId, started.celery_task_id);

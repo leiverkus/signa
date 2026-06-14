@@ -17,7 +17,7 @@ from .params import validate_params
 # Datastore namespace. Must equal the plugin directory name (what
 # PluginBase.get_name() / get_user_data_store() use), so detect (write) and
 # check (read) address the same per-user store.
-PLUGIN_NAMESPACE = "findgcp"
+PLUGIN_NAMESPACE = "signa"
 
 
 def _run_key(celery_task_id):
@@ -28,7 +28,7 @@ def _last_key(task_id):
     return "last:{}".format(task_id)
 
 
-# Per-user detection defaults (settable on the Find-GCP Settings page). Stored in
+# Per-user detection defaults (settable on the Signa Settings page). Stored in
 # the same per-user datastore as the run bindings (distinct "default_*" keys).
 DEFAULTS = {'epsg': 28191, 'dict': 1, 'minrate': 0.01, 'ignore': 0.33, 'adjust': True}
 

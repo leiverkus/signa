@@ -1,9 +1,9 @@
 /*
- * Find-GCP — "New task with Find-GCP" button.
+ * Signa — "New task with Signa" button.
  *
  * Registered into the dashboard via PluginsAPI.Dashboard.addNewTaskButton, this
  * adds a second new-task entry point next to "Select Images and GCP". It runs
- * the SAME single-pass workflow as scripts/findgcp-singlepass.py, in the
+ * the SAME single-pass workflow as scripts/signa-singlepass.py, in the
  * browser, so a georeferenced model is produced in one processing run:
  *
  *   create(partial) -> upload(images) -> detect (plugin) -> upload(gcp_list) -> commit
@@ -19,7 +19,7 @@
     // we wait for PluginsAPI before registering instead of giving up. React is
     // read inside the button callback, which runs later at trigger time.
 
-    // ArUco dictionaries offered in the dialog — a mirror of findgcp/params.py
+    // ArUco dictionaries offered in the dialog — a mirror of signa/params.py
     // DICT_CHOICES (ids 0..20 = OpenCV predefined, 99 = Find-GCP custom 3x3).
     // This page is a static script (no Django rendering), so the list is
     // duplicated here; keep it in sync with params.py if that ever changes.
@@ -102,7 +102,7 @@
     // Language: Django's language cookie if set, else the browser language.
     var MESSAGES = {
         de: {
-            "New task with Find-GCP": "Neuer Task mit Find-GCP",
+            "New task with Signa": "Neuer Task mit Signa",
             "Task name": "Task-Name",
             "(optional)": "(optional)",
             "Images": "Bilder",
@@ -144,7 +144,7 @@
               '<div class="modal-content">' +
                 '<div class="modal-header">' +
                   '<button type="button" class="close" data-x>&times;</button>' +
-                  '<h4 class="modal-title"><i class="fa fa-map-marker-alt"></i> ' + tr("New task with Find-GCP") + '</h4>' +
+                  '<h4 class="modal-title"><i class="fa fa-map-marker-alt"></i> ' + tr("New task with Signa") + '</h4>' +
                 '</div>' +
                 '<div class="modal-body">' +
                   '<div class="form-group"><label>' + tr("Task name") + '</label>' +
@@ -251,7 +251,7 @@
         document.body.appendChild(modal);
 
         // Pre-fill the params from the user's saved defaults (best-effort).
-        getJson("/api/plugins/findgcp/settings").then(function (s) {
+        getJson("/api/plugins/signa/settings").then(function (s) {
             if (s.epsg != null) q("[data-epsg]").value = s.epsg;
             if (s.dict != null) q("[data-dict]").value = s.dict;
             if (s.minrate != null) q("[data-minrate]").value = s.minrate;
@@ -294,7 +294,7 @@
             fd.append("minrate", params.minrate);
             fd.append("ignore", params.ignore);
             fd.append("adjust", params.adjust);
-            return postMultipart("/api/plugins/findgcp/task/" + state.taskId + "/detect", fd, sig);
+            return postMultipart("/api/plugins/signa/task/" + state.taskId + "/detect", fd, sig);
         }).then(function (started) {
             if (started.error) throw new Error(started.error);
             return pollDetect(state.taskId, started.celery_task_id, status, state);
@@ -327,7 +327,7 @@
     var POLL_TIMEOUT_MS = 30 * 60 * 1000;
 
     function pollDetect(taskId, celeryId, status, state) {
-        var url = "/api/plugins/findgcp/task/" + taskId + "/check/" + celeryId;
+        var url = "/api/plugins/signa/task/" + taskId + "/check/" + celeryId;
         var deadline = Date.now() + POLL_TIMEOUT_MS;
         return new Promise(function (resolve, reject) {
             (function tick() {
@@ -346,11 +346,11 @@
     function makeButton(args) {
         var React = window.React;
         return React.createElement("button", {
-            key: "findgcp-newtask",
+            key: "signa-newtask",
             className: "btn btn-default btn-sm",
             style: { marginLeft: 4 },
             onClick: function () { openDialog(args.projectId, args.onNewTaskAdded); }
-        }, React.createElement("i", { className: "fa fa-map-marker-alt" }), " Find-GCP Task");
+        }, React.createElement("i", { className: "fa fa-map-marker-alt" }), " Signa Task");
     }
 
     function ready() {

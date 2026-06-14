@@ -1,14 +1,14 @@
 {
-    "name": "Find-GCP",
+    "name": "Signa",
     "webodmMinVersion": "2.9.5",
     "description": "Automatic ArUco ground control point detection. Detects ArUco markers in a task's images, matches them against measured GCP coordinates and produces an ODM-compatible gcp_list.txt.",
     "version": "1.3.0",
     "author": "Patrick Leiverkus",
     "email": "leiverkus@gmail.com",
     "license": "MIT",
-    "repository": "https://github.com/leiverkus/find-gcp-webodm-plugin",
+    "repository": "https://github.com/leiverkus/signa-webodm-plugin",
     "tags": ["gcp", "aruco", "photogrammetry"],
-    "homepage": "https://github.com/leiverkus/find-gcp-webodm-plugin",
+    "homepage": "https://github.com/leiverkus/signa-webodm-plugin",
     "experimental": false,
     "deprecated": false
 }

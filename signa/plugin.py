@@ -58,12 +58,12 @@ class Plugin(PluginBase):
 
     def main_menu(self):
         return [
-            Menu(_("Find-GCP"), self.public_url(""), "fa fa-map-marker-alt fa-fw"),
-            Menu(_("Find-GCP Settings"), self.public_url("settings"), "fa fa-cog fa-fw"),
+            Menu(_("Signa"), self.public_url(""), "fa fa-map-marker-alt fa-fw"),
+            Menu(_("Signa Settings"), self.public_url("settings"), "fa fa-cog fa-fw"),
         ]
 
     def include_js_files(self):
-        # Loaded into the dashboard; registers the "Find-GCP task" button that
+        # Loaded into the dashboard; registers the "Signa task" button that
         # runs the single-pass workflow (see public/load_buttons.js). The
         # manifest version doubles as a cache-buster so browsers re-fetch the
         # script after every plugin update.
@@ -74,7 +74,7 @@ class Plugin(PluginBase):
         @login_required
         def index(request):
             return render(request, self.template_path("app.html"), {
-                'title': 'Find-GCP',
+                'title': 'Signa',
                 'defaults': read_user_defaults(self.get_user_data_store(request.user)),
                 'dict_choices': DICT_CHOICES,
             })
@@ -91,13 +91,13 @@ class Plugin(PluginBase):
                     ds.set_float('default_minrate', cd['minrate'])
                     ds.set_float('default_ignore', cd['ignore'])
                     ds.set_bool('default_adjust', cd['adjust'])
-                    messages.success(request, _("Find-GCP default settings saved."))
+                    messages.success(request, _("Signa default settings saved."))
                 else:
                     # The marker-print section needs its context here too,
                     # or its dictionary dropdown renders empty after a failed
                     # validation of the defaults form.
                     return render(request, self.template_path("settings.html"),
-                                  {'title': 'Find-GCP Settings', 'form': form,
+                                  {'title': 'Signa Settings', 'form': form,
                                    'dict_choices': DICT_CHOICES,
                                    'defaults': read_user_defaults(ds)})
 
@@ -107,7 +107,7 @@ class Plugin(PluginBase):
                 'minrate': d['minrate'], 'ignore': d['ignore'], 'adjust': d['adjust'],
             })
             return render(request, self.template_path("settings.html"),
-                          {'title': 'Find-GCP Settings', 'form': form,
+                          {'title': 'Signa Settings', 'form': form,
                            'dict_choices': DICT_CHOICES, 'defaults': d})
 
         @login_required

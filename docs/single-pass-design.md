@@ -55,8 +55,8 @@ its images uploaded is a valid detection target.
 1. POST /login/  (session cookie + CSRF)                  # NOT JWT — see Auth note
 2. POST /api/projects/<pid>/tasks/        {partial:true}  -> task <tid>
 3. POST /api/projects/<pid>/tasks/<tid>/upload/  (images, possibly chunked)
-4. POST /api/plugins/findgcp/task/<tid>/detect   (coords file + params) -> celery id
-   GET  /api/plugins/findgcp/task/<tid>/check/<celery id>  (poll) -> {summary, gcp_list}
+4. POST /api/plugins/signa/task/<tid>/detect   (coords file + params) -> celery id
+   GET  /api/plugins/signa/task/<tid>/check/<celery id>  (poll) -> {summary, gcp_list}
 5. POST /api/projects/<pid>/tasks/<tid>/upload/  (gcp_list.txt)   # becomes the GCP
 6. POST /api/projects/<pid>/tasks/<tid>/commit/                  # processes WITH GCP
 ```
@@ -88,12 +88,12 @@ Behaviour:
   before committing, with an optional `--dry-run` that stops before commit.
 - Upload `gcp_list.txt`, commit.
 
-Relationship to the existing `standalone/findgcp-webodm.sh`: that script detects
+Relationship to the existing `standalone/signa-webodm.sh`: that script detects
 **locally** (needs local OpenCV/Find-GCP) and creates one task with images+GCP.
 This new path detects **server-side** (no local OpenCV; needs the plugin + a
 worker with `cv2`). We keep both and document when to use which.
 
-Deliverable: `scripts/findgcp-singlepass.py` (+ `--help`, no third-party deps
+Deliverable: `scripts/signa-singlepass.py` (+ `--help`, no third-party deps
 beyond the stdlib + `requests` if acceptable, else `urllib`).
 
 ## Deliverable 2 — UI button
@@ -114,7 +114,7 @@ inconsistent detector) or to inject the GCP into the dropzone queue (fragile).
 line ~399) lets a plugin add its **own** new-task entry point next to "Select
 Images and GCP", receiving `{projectId, onNewTaskAdded}`. This is clean: our
 button owns the whole flow and reuses the **verified** single-pass sequence
-(the exact `findgcp-singlepass.py` logic, in the browser via `fetch`):
+(the exact `signa-singlepass.py` logic, in the browser via `fetch`):
 
 1. Our button opens a dialog: image picker + coordinate file + detection params.
 2. `create(partial)` → `upload(images)` → `detect` (plugin) → poll →
@@ -157,11 +157,11 @@ task ourselves.
    existing commit, so the dropzone's auto-commit timing is not involved.
 
 ### Auth note (learned during the live run)
-The Find-GCP plugin API is dispatched by WebODM's `api_view_handler`, a plain
+The Signa plugin API is dispatched by WebODM's `api_view_handler`, a plain
 Django view registered **without** `csrf_exempt` (`app/api/urls.py`). A JWT token
 alone is rejected with HTTP 403 "CSRF verification failed" — the core DRF
 ViewSets are csrf_exempt and accept JWT, but the plugin endpoints require a
-**session + `X-CSRFToken`** (what the frontend uses). `findgcp-singlepass.py`
+**session + `X-CSRFToken`** (what the frontend uses). `signa-singlepass.py`
 logs in via `/login/` and sends the CSRF header on every unsafe request.
 
 ## Test plan
@@ -170,7 +170,7 @@ logs in via `/login/` and sends the CSRF header on every unsafe request.
   if we add any (e.g. a server-side "attach gcp + commit" helper).
 - **Integration (real OpenCV):** the existing synthetic fixture already provides
   images + coords + expected `gcp_list.txt`.
-- **Live (scriptable):** run `findgcp-singlepass.py` against the synthetic
+- **Live (scriptable):** run `signa-singlepass.py` against the synthetic
   fixture end to end; assert the committed task has a GCP and the georeferencing
   uses it (`has_gcp` true). Record in `docs/manual-test.md`.
 - **Live (UI):** once the partial-task-id question is resolved, repeat via the
@@ -179,7 +179,7 @@ logs in via `/login/` and sends the CSRF header on every unsafe request.
 ## Milestones
 
 1. **DONE** — this document + live verification of open questions 1, 3.
-2. **DONE** — scriptable path (`scripts/findgcp-singlepass.py`); live `--dry-run`
+2. **DONE** — scriptable path (`scripts/signa-singlepass.py`); live `--dry-run`
    on the fixture confirmed detection + GCP attachment recognized by WebODM.
 3. **DONE** — UI button (`public/load_buttons.js` via `addNewTaskButton`,
    build-free); live run on 2026-06-10 (WebODM 3.2.4, project 11, task

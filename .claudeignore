@@ -79,7 +79,7 @@ fieldwork/*/processed/webodm_ready/images/
 # === Logs & reports ===
 # Logs are rarely relevant for Claude Code; attach explicitly if needed
 *.log
-findgcp_*.log
+signa_*.log
 fieldwork/*/processed/*.log
 gcp_report.txt
 

@@ -1,4 +1,4 @@
-"""Unit tests for scripts/findgcp-singlepass.py.
+"""Unit tests for scripts/signa-singlepass.py.
 
 The pure helpers (multipart encoder, image globbing) are tested directly. The
 networked workflow is exercised through ``process_task`` with a fake WebODM
@@ -14,7 +14,7 @@ import types
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPT = os.path.join(HERE, "..", "scripts", "findgcp-singlepass.py")
+SCRIPT = os.path.join(HERE, "..", "scripts", "signa-singlepass.py")
 
 
 def _load():
