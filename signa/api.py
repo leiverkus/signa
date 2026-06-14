@@ -43,7 +43,7 @@ def read_user_defaults(store):
     }
 
 
-class TaskFindGCPDetect(TaskView):
+class TaskSignaDetect(TaskView):
     """Start ArUco GCP detection for a task's images in a background worker.
 
     Tightened beyond WebODM's default TaskNestedView (AllowAny + public-task
@@ -101,7 +101,7 @@ class TaskFindGCPDetect(TaskView):
         return Response({'celery_task_id': celery_task_id}, status=status.HTTP_200_OK)
 
 
-class TaskFindGCPCheck(APIView):
+class TaskSignaCheck(APIView):
     """Poll detection status; on completion returns the summary and gcp_list text.
 
     Results are bound to the user who started the run (via the plugin's per-user
@@ -165,7 +165,7 @@ class TaskFindGCPCheck(APIView):
         return Response({'ready': True, 'summary': result.get('output')})
 
 
-class FindGCPSettings(APIView):
+class SignaSettings(APIView):
     """Return the requesting user's saved detection defaults (used by the
     dashboard dialog to pre-fill its fields)."""
     permission_classes = (permissions.IsAuthenticated,)

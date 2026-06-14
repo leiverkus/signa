@@ -16,7 +16,7 @@ import types
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FINDGCP_DIR = os.path.abspath(os.path.join(HERE, "..", "signa"))
+SIGNA_DIR = os.path.abspath(os.path.join(HERE, "..", "signa"))
 
 # Load the fakes helper by path and install the fake modules BEFORE importing
 # signa.api (which imports them at module load).
@@ -30,7 +30,7 @@ REG = fakes.install()
 # the real __init__ (which pulls in plugin.py -> app.plugins). Submodules
 # (api/params/gcp_detect) are found via __path__ and run for real.
 _pkg = types.ModuleType("signa")
-_pkg.__path__ = [FINDGCP_DIR]
+_pkg.__path__ = [SIGNA_DIR]
 sys.modules["signa"] = _pkg
 
 api = importlib.import_module("signa.api")
@@ -61,7 +61,7 @@ def _coords_file(text="0 1 2 3\n"):
 # ----------------------------- detect -----------------------------
 
 def detect(request, pk="t1"):
-    return api.TaskFindGCPDetect().post(request, pk=pk)
+    return api.TaskSignaDetect().post(request, pk=pk)
 
 
 def test_detect_happy_path_starts_run_and_binds():
@@ -135,7 +135,7 @@ def test_detect_prunes_previous_run_for_same_task():
 # ----------------------------- check -----------------------------
 
 def check(request, pk="t1", cid="celery-xyz"):
-    return api.TaskFindGCPCheck().get(request, pk=pk, celery_task_id=cid)
+    return api.TaskSignaCheck().get(request, pk=pk, celery_task_id=cid)
 
 
 def _own(user, pk="t1", cid="celery-xyz"):

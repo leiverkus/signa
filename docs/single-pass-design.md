@@ -45,7 +45,7 @@ the (partial) task registers it as the GCP. *(To verify live — see open
 questions.)*
 
 ### Our existing detection endpoints work on a partial task
-`TaskFindGCPDetect` reads `task.scan_images()` / `get_image_path()`, which return
+`TaskSignaDetect` reads `task.scan_images()` / `get_image_path()`, which return
 the uploaded images regardless of processing state. A partial task that has had
 its images uploaded is a valid detection target.
 

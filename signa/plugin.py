@@ -9,14 +9,14 @@ from django.contrib.auth.decorators import login_required
 from django.utils.translation import gettext as _, gettext_lazy as _l
 from django import forms
 
-from .api import TaskFindGCPDetect, TaskFindGCPCheck, FindGCPSettings, read_user_defaults
+from .api import TaskSignaDetect, TaskSignaCheck, SignaSettings, read_user_defaults
 from .params import DICT_CHOICES, validate_marker_params
 
 
 # Field labels/help_texts are evaluated at class-definition (module import)
 # time, so they must be lazy — plain gettext would freeze them in whatever
 # language was active when the module loaded.
-class FindGCPSettingsForm(forms.Form):
+class SignaSettingsForm(forms.Form):
     epsg = forms.IntegerField(label=_l("EPSG (target CRS)"), min_value=1024, max_value=999999)
     dict_id = forms.ChoiceField(label=_l("ArUco dictionary"), choices=DICT_CHOICES)
     minrate = forms.FloatField(
@@ -83,7 +83,7 @@ class Plugin(PluginBase):
         def settings_view(request):
             ds = self.get_user_data_store(request.user)
             if request.method == 'POST':
-                form = FindGCPSettingsForm(request.POST)
+                form = SignaSettingsForm(request.POST)
                 if form.is_valid():
                     cd = form.cleaned_data
                     ds.set_int('default_epsg', cd['epsg'])
@@ -102,7 +102,7 @@ class Plugin(PluginBase):
                                    'defaults': read_user_defaults(ds)})
 
             d = read_user_defaults(ds)
-            form = FindGCPSettingsForm(initial={
+            form = SignaSettingsForm(initial={
                 'epsg': d['epsg'], 'dict_id': str(d['dict']),
                 'minrate': d['minrate'], 'ignore': d['ignore'], 'adjust': d['adjust'],
             })
@@ -144,7 +144,7 @@ class Plugin(PluginBase):
 
     def api_mount_points(self):
         return [
-            MountPoint('task/(?P<pk>[^/.]+)/detect', TaskFindGCPDetect.as_view()),
-            MountPoint('task/(?P<pk>[^/.]+)/check/(?P<celery_task_id>.+)', TaskFindGCPCheck.as_view()),
-            MountPoint('settings$', FindGCPSettings.as_view()),
+            MountPoint('task/(?P<pk>[^/.]+)/detect', TaskSignaDetect.as_view()),
+            MountPoint('task/(?P<pk>[^/.]+)/check/(?P<celery_task_id>.+)', TaskSignaCheck.as_view()),
+            MountPoint('settings$', SignaSettings.as_view()),
         ]

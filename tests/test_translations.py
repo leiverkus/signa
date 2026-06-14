@@ -14,8 +14,8 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FINDGCP = os.path.join(HERE, "..", "signa")
-PO_PATH = os.path.join(FINDGCP, "locale", "de", "LC_MESSAGES", "django.po")
+SIGNA = os.path.join(HERE, "..", "signa")
+PO_PATH = os.path.join(SIGNA, "locale", "de", "LC_MESSAGES", "django.po")
 COMPILER = os.path.join(HERE, "..", "scripts", "compile_messages.py")
 
 TRANS_RE = re.compile(r"""\{%\s*trans\s+(?:"([^"]+)"|'([^']+)')\s*%\}""")
@@ -67,7 +67,7 @@ PO = cm.parse_po(PO_PATH)
 def _template_msgids():
     ids = set()
     for name in ("app.html", "settings.html"):
-        with open(os.path.join(FINDGCP, "templates", name), encoding="utf-8") as f:
+        with open(os.path.join(SIGNA, "templates", name), encoding="utf-8") as f:
             text = f.read()
         for m in TRANS_RE.finditer(text):
             ids.add(m.group(1) or m.group(2))
@@ -91,7 +91,7 @@ def test_params_errors_match_catalog():
     """Every error string params.py can return must be a catalog msgid, since
     api.py translates them via _(error) at runtime."""
     spec = importlib.util.spec_from_file_location(
-        "signa_params", os.path.join(FINDGCP, "params.py"))
+        "signa_params", os.path.join(SIGNA, "params.py"))
     params = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(params)
 
