@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-25
+
 ### Changed
+- Marker-sheet rendering moved into `signa-core` (`signa_core.markers`): the PDF
+  writer, marker raster, center aiming aids, label drawing (Pillow primary,
+  Hershey fallback) and the per-page self-check are now shared primitives.
+  `signa/marker_pdf.py` keeps only the Signa-specific fit-to-page sizing; the
+  shared geometry/capacity tables (`PAGE_SIZES_MM`, `MARKER_AIDS`,
+  `DICT_CAPACITY`, `MAX_MARKER_PAGES`) are re-exported in `params.py` from
+  signa-core. No change to the produced PDFs. Requires `signa-core>=0.2.0`.
 - CI: bumped `softprops/action-gh-release@v2 → v3` (Node 24 runtime; the `v2`
   line still targets the now-deprecated Node 20). Release-workflow only.
 

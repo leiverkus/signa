@@ -12,6 +12,17 @@ surfaces them to the client as JSON.
 # cv2 import at module level, so params.py stays Django-free and cv2-free.
 from signa_core import DICT_CHOICES, VALID_DICTS  # noqa: F401  (re-exported)
 
+# Marker-sheet tables also live in signa-core (shared with Mensura's scale
+# markers), so the settings form, UI dropdowns, validation and the renderer can
+# never drift. signa-core imports no Django and no cv2 at module level, so
+# params.py stays Django-free and cv2-free.
+from signa_core import (  # noqa: F401  (re-exported)
+    DICT_CAPACITY,
+    MARKER_AIDS,
+    MAX_MARKER_PAGES,
+    PAGE_SIZES_MM,
+)
+
 # Hard floor for minrate. The UI/docs say "never below 0.005"; below it the
 # detector accepts tiny perimeters and produces a flood of false positives, so
 # the API enforces the same limit the settings form and help texts state.
@@ -57,36 +68,8 @@ def validate_params(data):
 
 
 # --- Marker-sheet printing (settings page → PDF download) -------------------
-
-# DIN A page formats offered by the print form, portrait (width, height) in mm.
-PAGE_SIZES_MM = {
-    'a6': (105, 148),
-    'a5': (148, 210),
-    'a4': (210, 297),
-    'a3': (297, 420),
-    'a2': (420, 594),
-}
-
-# Center aiming aids (for putting a total station / laser disto target on the
-# exact point Signa reports: the marker center). The labels live in the
-# settings template as {% trans %} strings so this module stays Django-free.
-MARKER_AIDS = ('none', 'cross', 'cross_halo', 'dot_ring')
-
-# Ids per dictionary, verified against opencv-contrib 4.10/4.13 (bytesList row
-# counts). Lets validation reject an out-of-range id without importing cv2;
-# marker_pdf.py re-checks against the real dictionary as belt and braces.
-DICT_CAPACITY = {
-    0: 50, 1: 100, 2: 250, 3: 1000,         # 4x4
-    4: 50, 5: 100, 6: 250, 7: 1000,         # 5x5
-    8: 50, 9: 100, 10: 250, 11: 1000,       # 6x6
-    12: 50, 13: 100, 14: 250, 15: 1000,     # 7x7
-    16: 1024,                               # ARUCO_ORIGINAL
-    17: 30, 18: 35, 19: 2320, 20: 587,      # AprilTag 16h5/25h9/36h10/36h11
-    99: 32,                                 # legacy custom 3x3
-}
-
-# One page per marker; keeps a synchronous request (and the PDF) bounded.
-MAX_MARKER_PAGES = 100
+# PAGE_SIZES_MM, MARKER_AIDS, DICT_CAPACITY and MAX_MARKER_PAGES come from
+# signa-core (imported at the top of this module).
 
 
 def validate_marker_params(data):

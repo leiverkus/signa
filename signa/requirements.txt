@@ -12,9 +12,9 @@
 # error message points to it).
 opencv-contrib-python-headless==4.10.0.84
 
-# Shared, GUI-free ArUco detection core (single source of truth for the
-# dictionaries and the detector, shared with Mensura). Lives in this repo under
-# ../signa-core. Until it is published to PyPI, install it into the plugin's
-# site-packages alongside this file (or build the worker image with it); the
-# plugin imports `signa_core` at load time.
-signa-core>=0.1.0
+# Shared, GUI-free ArUco detection + marker-sheet rendering core (single source
+# of truth for the dictionaries, the detector and the print-ready marker PDFs,
+# shared with Mensura). Published on PyPI; the repo copy lives under
+# ../signa-core. 0.2.0 adds signa_core.markers (used by marker_pdf.py). Pillow is
+# already a WebODM dependency, so the nicer label typeface is available.
+signa-core>=0.2.0

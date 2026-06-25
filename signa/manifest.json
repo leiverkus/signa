@@ -2,7 +2,7 @@
     "name": "Signa",
     "webodmMinVersion": "2.9.5",
     "description": "Automatic ArUco ground control point detection. Detects ArUco markers in a task's images, matches them against measured GCP coordinates and produces an ODM-compatible gcp_list.txt.",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "author": "Patrick Leiverkus",
     "email": "leiverkus@gmail.com",
     "license": "AGPL-3.0-or-later",
