@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/leiverkus/signa-webodm-plugin"
+Repository = "https://github.com/leiverkus/signa"
 
 [tool.hatch.build.targets.wheel]
 packages = ["signa_core"]

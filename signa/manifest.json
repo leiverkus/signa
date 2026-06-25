@@ -6,9 +6,9 @@
     "author": "Patrick Leiverkus",
     "email": "leiverkus@gmail.com",
     "license": "AGPL-3.0-or-later",
-    "repository": "https://github.com/leiverkus/signa-webodm-plugin",
+    "repository": "https://github.com/leiverkus/signa",
     "tags": ["gcp", "aruco", "photogrammetry"],
-    "homepage": "https://github.com/leiverkus/signa-webodm-plugin",
+    "homepage": "https://github.com/leiverkus/signa",
     "experimental": false,
     "deprecated": false
 }

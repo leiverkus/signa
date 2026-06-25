@@ -1,8 +1,8 @@
 # Signa for WebODM
 
-[![CI](https://github.com/leiverkus/signa-webodm-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/leiverkus/signa-webodm-plugin/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/leiverkus/signa-webodm-plugin?sort=semver)](https://github.com/leiverkus/signa-webodm-plugin/releases)
-[![License: AGPL v3](https://img.shields.io/github/license/leiverkus/signa-webodm-plugin)](LICENSE)
+[![CI](https://github.com/leiverkus/signa/actions/workflows/ci.yml/badge.svg)](https://github.com/leiverkus/signa/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/leiverkus/signa?sort=semver)](https://github.com/leiverkus/signa/releases)
+[![License: AGPL v3](https://img.shields.io/github/license/leiverkus/signa)](LICENSE)
 [![WebODM ≥ 2.9.5](https://img.shields.io/badge/WebODM-%E2%89%A5%202.9.5-1f6feb.svg)](https://github.com/WebODM/WebODM)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab.svg)](https://www.python.org/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20715426.svg)](https://doi.org/10.5281/zenodo.20715426)
@@ -20,7 +20,7 @@ client workflow.
 ## Install in WebODM
 
 1. Download `signa-<version>.zip` from the
-   [Releases](https://github.com/leiverkus/signa-webodm-plugin/releases) page.
+   [Releases](https://github.com/leiverkus/signa/releases) page.
 2. In WebODM: **Administration → Plugins → Load Plugin (.zip)** and upload the zip.
 3. Enable the plugin. A **Signa** entry appears in the main menu.
 4. **Restart the web app** after every install or update

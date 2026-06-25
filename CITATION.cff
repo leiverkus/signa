@@ -18,8 +18,8 @@ authors:
 version: "1.4.1"
 date-released: "2026-06-18"
 license: AGPL-3.0-or-later
-repository-code: "https://github.com/leiverkus/signa-webodm-plugin"
-url: "https://github.com/leiverkus/signa-webodm-plugin"
+repository-code: "https://github.com/leiverkus/signa"
+url: "https://github.com/leiverkus/signa"
 keywords:
   - WebODM
   - OpenDroneMap

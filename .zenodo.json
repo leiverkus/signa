@@ -24,7 +24,7 @@
   "related_identifiers": [
     {
       "relation": "isSupplementedBy",
-      "identifier": "https://github.com/leiverkus/signa-webodm-plugin",
+      "identifier": "https://github.com/leiverkus/signa",
       "scheme": "url"
     }
   ]

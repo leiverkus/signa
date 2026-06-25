@@ -5,7 +5,7 @@
 # pending publisher), with:
 #   PyPI project name:  signa-core
 #   Owner:              leiverkus
-#   Repository name:    signa-webodm-plugin
+#   Repository name:    signa
 #   Workflow filename:  publish-signa-core.yml
 #   Environment name:   pypi
 #
