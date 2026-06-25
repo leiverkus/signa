@@ -235,6 +235,37 @@ def test_unmatched_detection_reported(install_cv2):
     assert res["output"]["unmatched_ids"] == [8]
 
 
+def test_check_point_token_appended(install_cv2):
+    """A coords line ending in 'check' marks that id as a held-out check point:
+    its gcp_list lines end in ' check'; control points do not; summary lists it."""
+    install_cv2({"a.JPG": [(5, SQUARE), (8, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, image_paths=["/x/a.JPG"],
+              coords_text="5 100 200 30 check\n8 110 210 31\n")
+    assert "error" not in res, res
+    rows = [ln.split() for ln in res["output"]["gcp_list"].splitlines()[1:]]
+    by_id = {r[6]: r for r in rows}
+    assert by_id["5"][-1] == "check" and len(by_id["5"]) == 8   # check token appended
+    assert by_id["8"][-1] == "8" and len(by_id["8"]) == 7       # control: no token
+    assert res["output"]["check_ids"] == [5]
+
+
+def test_no_check_token_is_all_control(install_cv2):
+    install_cv2({"a.JPG": [(5, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, image_paths=["/x/a.JPG"], coords_text="5 100 200 30\n")
+    assert res["output"]["check_ids"] == []
+    assert not res["output"]["gcp_list"].strip().endswith("check")
+
+
+def test_check_token_case_insensitive_and_comma(install_cv2):
+    install_cv2({"a.JPG": [(5, SQUARE)]})
+    detect = load_detect_source_fn()
+    res = run(detect, image_paths=["/x/a.JPG"], coords_text="5,100,200,30,CHECK\n")
+    assert res["output"]["check_ids"] == [5]
+    assert res["output"]["gcp_list"].splitlines()[1].endswith(" check")
+
+
 def test_dict_99_uses_custom(install_cv2):
     install_cv2({"a.JPG": [(5, SQUARE)]})
     detect = load_detect_source_fn()

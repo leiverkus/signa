@@ -58,13 +58,18 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
                              "worker pip install opencv-contrib-python-headless"}
 
     def parse_coords(text):
-        """id easting northing elevation -> {id: (e, n, z)}.
+        """id easting northing elevation [check] -> ({id: (e, n, z)}, check_ids).
 
         - the id must be a plain integer (``1.9`` is rejected, not truncated)
         - coordinates must be finite numbers (nan/inf rejected)
         - duplicate ids keep the first occurrence and are reported
+        - an optional trailing ``check`` token (case-insensitive) holds that point
+          out as an INDEPENDENT check point: it is excluded from the georeferencing
+          solve by the Effigies node, which then reports an honest check-point RMSE.
+          Without the token a point is a normal control GCP (backward compatible).
         """
         coords = {}
+        check_ids = set()
         skipped = []
         duplicates = []
         for lineno, raw in enumerate(text.splitlines(), 1):
@@ -88,7 +93,9 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
                 duplicates.append(marker_id)
                 continue
             coords[marker_id] = (parts[1], parts[2], parts[3])
-        return coords, skipped, duplicates
+            if len(parts) >= 5 and parts[4].lower() == 'check':
+                check_ids.add(marker_id)
+        return coords, check_ids, skipped, duplicates
 
     def declared_epsgs(text):
         """CRS code(s) the coordinate file declares about itself.
@@ -155,7 +162,7 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
         )
 
     # --- parse coordinates ---
-    coords, skipped_lines, duplicate_ids = parse_coords(coords_text)
+    coords, check_ids, skipped_lines, duplicate_ids = parse_coords(coords_text)
     if not coords:
         return {'error': 'No valid GCP coordinates parsed '
                          '(expected per line: id easting northing elevation; '
@@ -219,10 +226,16 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
                              sorted(found.keys()) or 'none', sorted(coords.keys()))}
 
     # --- build ODM gcp_list.txt as text ---
+    # A check point's lines end in ' check' (every image row of a check marker
+    # carries it); the Effigies node holds those out of the solve and reports an
+    # independent check-point RMSE. ODM ignores the token on non-Effigies nodes.
     lines = ['EPSG:{}'.format(int(epsg))]
     for (x, y, base, marker_id) in matched:
         e, n, z = coords[marker_id]
-        lines.append('{} {} {} {} {} {} {}'.format(e, n, z, x, y, base, marker_id))
+        line = '{} {} {} {} {} {} {}'.format(e, n, z, x, y, base, marker_id)
+        if marker_id in check_ids:
+            line += ' check'
+        lines.append(line)
     gcp_list = '\n'.join(lines) + '\n'
 
     matched_ids = sorted({g[3] for g in matched})
@@ -234,6 +247,7 @@ def detect_gcps(image_paths, coords_text, epsg, dict_id=1, minrate=0.01,
         'markers_per_id': {str(m): found[m] for m in matched_ids},
         'weak_markers': [m for m in matched_ids if found.get(m, 0) < 3],
         'unmatched_ids': sorted(set(found.keys()) - set(coords.keys())),
+        'check_ids': sorted(check_ids & set(matched_ids)),
         'coord_skipped_lines': skipped_lines,
         'coord_duplicate_ids': sorted(set(duplicate_ids)),
         'epsg': int(epsg),

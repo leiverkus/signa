@@ -1,3 +1,6 @@
+import json
+import os
+
 from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,6 +16,7 @@ from worker.tasks import TestSafeAsyncResult
 
 from .gcp_detect import detect_gcps
 from .params import validate_params
+from .accuracy import build_accuracy_report
 
 # Datastore namespace. Must equal the plugin directory name (what
 # PluginBase.get_name() / get_user_data_store() use), so detect (write) and
@@ -41,6 +45,31 @@ def read_user_defaults(store):
         'ignore': store.get_float('default_ignore', DEFAULTS['ignore']),
         'adjust': store.get_bool('default_adjust', DEFAULTS['adjust']),
     }
+
+
+# Effigies writes its georeferencing solve here within the task's assets.
+GEOREF_ASSET = ('odm_report', 'georef_transform.json')
+
+
+def _georef_path(task):
+    """Locate the task's georef_transform.json on disk across WebODM Task APIs."""
+    candidates = []
+    ap = getattr(task, 'assets_path', None)
+    if callable(ap):
+        try:
+            candidates.append(ap(*GEOREF_ASSET))
+        except Exception:
+            pass
+    gad = getattr(task, 'get_asset_download_path', None)
+    if callable(gad):
+        try:
+            candidates.append(gad('/'.join(GEOREF_ASSET)))
+        except Exception:
+            pass
+    for p in candidates:
+        if p and os.path.exists(p):
+            return p
+    return None
 
 
 class TaskSignaDetect(TaskView):
@@ -173,3 +202,31 @@ class SignaSettings(APIView):
     def get(self, request, **kwargs):
         store = UserDataStore(PLUGIN_NAMESPACE, request.user)
         return Response(read_user_defaults(store))
+
+
+class TaskSignaAccuracyReport(TaskView):
+    """Georeferencing-accuracy report for a finished task: reads Effigies'
+    odm_report/georef_transform.json and presents the control GCP fit plus, when
+    check points were flagged, the INDEPENDENT held-out check-point RMSE.
+
+    Synchronous (a small JSON read; no worker). Auth + change_project gated."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, pk=None):
+        task = self.get_and_check_task(request, pk)
+        check_project_perms(request, task.project, ('change_project',))
+
+        path = _georef_path(task)
+        if not path:
+            return Response({'available': False, 'reason': _(
+                'No accuracy report found for this task. It must be processed by '
+                'the Effigies reconstruction node (which writes the georeferencing '
+                'solve) and have finished.')}, status=status.HTTP_200_OK)
+        try:
+            with open(path) as f:
+                transform = json.load(f)
+        except (OSError, ValueError) as e:
+            return Response({'available': False, 'reason': _(
+                'Could not read the accuracy report: %(err)s') % {'err': str(e)[:200]}},
+                status=status.HTTP_200_OK)
+        return Response(build_accuracy_report(transform), status=status.HTTP_200_OK)

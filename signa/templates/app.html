@@ -24,7 +24,7 @@
     <div class="frow">
       <label>{% trans "GCP coordinate file" %}</label>
       <input type="file" id="coords" accept=".txt,.csv,text/plain">
-      <small>{% trans "Format per line: id easting northing elevation (whitespace or comma separated)." %}</small>
+      <small>{% trans "Format per line: id easting northing elevation (whitespace or comma separated). Optionally end a line with the word check to hold that point out as an independent check point (for an accuracy report on the Effigies node)." %}</small>
     </div>
 
     <div class="grid">
@@ -63,6 +63,28 @@
 
   <div id="status" class="status" style="display:none;"></div>
   <div id="result" class="result" style="display:none;"></div>
+
+  <hr>
+
+  <div class="signa-report">
+    <h2><i class="fa fa-crosshairs"></i> {% trans "Signa — accuracy verification" %}</h2>
+    <p class="help">
+      {% blocktrans %}After a task has finished on the Effigies reconstruction node, this reads the recovered georeferencing accuracy from its report. Paste the task's id (from its URL). For an <strong>independent</strong> accuracy, hold out at least one GCP as a check point (end its coordinate line with the word check) before processing — otherwise only the control-point fit is available, which is not an independent accuracy.{% endblocktrans %}
+    </p>
+
+    <form data-form onsubmit="return false;">
+      <div class="frow">
+        <label>{% trans "Task id" %}</label>
+        <input type="text" data-task class="form-control" placeholder="00000000-0000-0000-0000-000000000000">
+      </div>
+      <div class="frow">
+        <button type="submit" class="btn btn-primary" data-go><i class="fa fa-search"></i> {% trans "Show accuracy report" %}</button>
+      </div>
+    </form>
+
+    <div data-status style="display:none;margin-top:12px;padding:10px 14px;border-radius:4px;"></div>
+    <div data-result style="display:none;margin-top:12px;"></div>
+  </div>
 </div>
 
 <script>
@@ -199,6 +221,7 @@
           (summary.images_unreadable ? ' (' + summary.images_unreadable + ' {% trans "unreadable" %})' : '') + '</li>' +
         '<li>{% trans "GCP entries" %}: ' + summary.detections + '</li>' +
         '<li>{% trans "Unique markers" %}: ' + summary.unique_markers + '</li>' +
+        ((summary.check_ids && summary.check_ids.length) ? '<li>{% trans "Check points (held-out):" %} ' + summary.check_ids.join(", ") + '</li>' : '') +
         '<li>EPSG: ' + summary.epsg + '</li>' +
       '</ul>' +
       (summary.unique_markers < 5 ? '<p class="warn">⚠ {% trans "Fewer than 5 unique markers — 5–10+ recommended for a robust bundle adjustment." %}</p>' : "") +
@@ -296,6 +319,66 @@
   }
 
   $("run").addEventListener("click", detect);
+})();
+</script>
+
+<script>
+(function () {
+  var root = document.querySelector(".signa-report");
+  if (!root) return;
+  function q(s) { return root.querySelector(s); }
+  function status(html, kind) {
+    var s = q("[data-status]");
+    s.style.display = "block";
+    s.style.background = kind === "error" ? "#f8d7da" : (kind === "warn" ? "#fff3cd" : "#f3f3f3");
+    s.innerHTML = html;
+  }
+  function esc(v) { return (v == null ? "" : String(v)).replace(/[&<>]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]; }); }
+  function fmt(v, d) { return (typeof v === "number") ? v.toFixed(d) : "—"; }
+  function cm(mm) { return (typeof mm === "number") ? fmt(mm / 10, 1) + " cm" : "—"; }
+
+  function render(r) {
+    var res = q("[data-result]");
+    if (!r.available) {
+      res.style.display = "none";
+      status('<i class="fa fa-info-circle"></i> ' + esc(r.reason || "{% trans 'No accuracy report available.' %}"), "warn");
+      return;
+    }
+    status('<i class="fa fa-' + (r.ok ? "check" : "exclamation-triangle") + '"></i> ' + esc(r.verdict), r.ok ? "ok" : "warn");
+    var rows = [
+      ["{% trans 'Georeferenced' %}", r.georeferenced ? "{% trans 'yes' %}" : "{% trans 'no' %}"],
+      ["{% trans 'Georef source' %}", esc(r.source)],
+      ["{% trans 'CRS' %}", esc(r.crs)],
+      ["{% trans 'Control points' %}", r.n_control == null ? "—" : r.n_control],
+      ["{% trans 'Control fit (3D RMS)' %}", cm(r.control_rms_mm) + (r.has_independent_check ? "" : " {% trans '(fit, not independent)' %}")]
+    ];
+    if (r.has_independent_check) {
+      rows.push(["{% trans 'Check points (held-out)' %}", r.n_check == null ? "—" : r.n_check]);
+      rows.push(["{% trans 'Independent check (3D RMS)' %}", cm(r.check_rms_mm)]);
+      if (r.check_rms_horizontal_mm != null) rows.push(["{% trans 'Check horizontal' %}", cm(r.check_rms_horizontal_mm)]);
+      if (r.check_rms_vertical_mm != null) rows.push(["{% trans 'Check vertical' %}", cm(r.check_rms_vertical_mm)]);
+    }
+    res.innerHTML = '<table class="table table-condensed"><tbody>' + rows.map(function (kv) {
+      return '<tr><th style="width:45%">' + kv[0] + '</th><td>' + kv[1] + '</td></tr>';
+    }).join("") + '</tbody></table>';
+    res.style.display = "block";
+  }
+
+  function load(taskId) {
+    if (!taskId) { status("{% trans 'Please enter a task id.' %}", "error"); return; }
+    status('<i class="fa fa-spinner fa-spin"></i> {% trans "Loading…" %}');
+    q("[data-result]").style.display = "none";
+    fetch("/api/plugins/signa/task/" + encodeURIComponent(taskId) + "/accuracy_report", { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function (e) { status('<i class="fa fa-exclamation-triangle"></i> ' + esc(e.message), "error"); });
+  }
+
+  q("[data-go]").addEventListener("click", function () { load(q("[data-task]").value.trim()); });
+
+  // Prefill + auto-load from ?task=… (e.g. linked from a finished task).
+  var m = window.location.search.match(/[?&]task=([^&]+)/);
+  if (m) { var t = decodeURIComponent(m[1]); q("[data-task]").value = t; load(t); }
 })();
 </script>
 {% endblock %}

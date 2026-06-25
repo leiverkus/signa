@@ -88,8 +88,11 @@ GCP interface, but automatic):
 1. Open **Signa** from the menu.
 2. **Drop drone images** (or click to choose) and select the **GCP coordinate
    file** — one marker per line: `id easting northing elevation` (whitespace or
-   comma separated). Optionally declare the CRS in a comment (`# … (EPSG:28191)`)
-   to catch a wrong EPSG choice — see [below](#declare-the-coordinate-crs-in-the-file-recommended).
+   comma separated). A line may optionally **end in `check`**
+   (`id easting northing elevation check`) to hold that point out as an independent
+   check point — see [Accuracy verification](#accuracy-verification). Optionally
+   declare the CRS in a comment (`# … (EPSG:28191)`) to catch a wrong EPSG choice —
+   see [below](#declare-the-coordinate-crs-in-the-file-recommended).
 3. Set the parameters (see below) and click **Detect GCPs**.
 4. Review the summary (markers, image counts, warnings) and **download
    `gcp_list.txt`**.
@@ -201,6 +204,26 @@ happens. (Once *commit* is in flight the task is kept on purpose — the server
 may already have started it — so a lost response there never deletes a started
 run.) A fully race-proof create would need a server-side idempotency key, which
 WebODM does not currently offer.
+
+## Accuracy verification
+
+Absolute georeferencing accuracy can only be verified against **independent**,
+externally surveyed coordinates — so Signa supports **check points**: end a
+coordinate line with the word `check`
+(`id easting northing elevation check`) to hold that GCP out of the
+georeferencing solve. On the **[Effigies](https://github.com/evidentia/effigies)**
+node (default `auto` mode) flagging ≥1 check point runs a GCP-constrained bundle
+adjustment that reports an honest **held-out check-point RMSE** — the standard
+survey-accuracy metric (control points alone only show the optimistic fit of the
+points used in the solve).
+
+After a task finishes, the **accuracy report** at the bottom of the *Signa* page
+(paste the task id) reads Effigies' `odm_report/georef_transform.json` and shows
+the control GCP fit and, when check points were used, the **independent check
+RMSE** (3D + horizontal/vertical, in cm) with a plain-language verdict — flagged
+red beyond a tunable 5 cm bound. Without a check point it states plainly that the
+control fit is *not* an independent accuracy. With a non-Effigies node it cleanly
+reports "not available".
 
 ## Plugin layout
 

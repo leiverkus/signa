@@ -306,3 +306,67 @@ msgstr "OpenCV mit dem ArUco-Modul (cv2.aruco) ist in der Webapp nicht verfügba
 #: marker_pdf.py
 msgid "Marker self-check failed: a rendered page was not detectable. Try a larger page size or a different center aiming aid."
 msgstr "Marker-Selbsttest fehlgeschlagen: eine erzeugte Seite war nicht detektierbar. Größere Seitengröße oder andere Zielhilfe wählen."
+
+#: templates/app.html (check points + accuracy report)
+msgid "Format per line: id easting northing elevation (whitespace or comma separated). Optionally end a line with the word check to hold that point out as an independent check point (for an accuracy report on the Effigies node)."
+msgstr "Format pro Zeile: ID Rechtswert Hochwert Höhe (durch Leerzeichen oder Komma getrennt). Optional kann eine Zeile mit dem Wort check enden, um den Punkt als unabhängigen Kontrollpunkt zurückzuhalten (für einen Genauigkeitsreport auf dem Effigies-Node)."
+
+msgid "Check points (held-out):"
+msgstr "Check-Punkte (zurückgehalten):"
+
+msgid "Signa — accuracy verification"
+msgstr "Signa — Genauigkeitsprüfung"
+
+msgid "After a task has finished on the Effigies reconstruction node, this reads the recovered georeferencing accuracy from its report. Paste the task's id (from its URL). For an <strong>independent</strong> accuracy, hold out at least one GCP as a check point (end its coordinate line with the word check) before processing — otherwise only the control-point fit is available, which is not an independent accuracy."
+msgstr "Nachdem ein Task auf dem Effigies-Rekonstruktionsnode fertig ist, liest dies die ermittelte Georeferenzier-Genauigkeit aus dessen Report. Füge die Task-ID ein (aus der URL). Für eine <strong>unabhängige</strong> Genauigkeit halte vor der Verarbeitung mindestens einen GCP als Check-Punkt zurück (Koordinatenzeile mit dem Wort check beenden) — sonst liegt nur der Kontrollpunkt-Fit vor, der keine unabhängige Genauigkeit ist."
+
+msgid "Task id"
+msgstr "Task-ID"
+
+msgid "Show accuracy report"
+msgstr "Genauigkeitsreport anzeigen"
+
+msgid "No accuracy report available."
+msgstr "Kein Genauigkeitsreport verfügbar."
+
+msgid "Georeferenced"
+msgstr "Georeferenziert"
+
+msgid "yes"
+msgstr "ja"
+
+msgid "no"
+msgstr "nein"
+
+msgid "Georef source"
+msgstr "Georef-Quelle"
+
+msgid "CRS"
+msgstr "CRS"
+
+msgid "Control points"
+msgstr "Kontrollpunkte"
+
+msgid "Control fit (3D RMS)"
+msgstr "Kontrollpunkt-Fit (3D-RMS)"
+
+msgid "(fit, not independent)"
+msgstr "(Fit, nicht unabhängig)"
+
+msgid "Check points (held-out)"
+msgstr "Check-Punkte (zurückgehalten)"
+
+msgid "Independent check (3D RMS)"
+msgstr "Unabhängige Prüfung (3D-RMS)"
+
+msgid "Check horizontal"
+msgstr "Check horizontal"
+
+msgid "Check vertical"
+msgstr "Check vertikal"
+
+msgid "Please enter a task id."
+msgstr "Bitte eine Task-ID eingeben."
+
+msgid "Loading…"
+msgstr "Lädt…"

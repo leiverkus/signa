@@ -9,7 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils.translation import gettext as _, gettext_lazy as _l
 from django import forms
 
-from .api import TaskSignaDetect, TaskSignaCheck, SignaSettings, read_user_defaults
+from .api import (TaskSignaDetect, TaskSignaCheck, SignaSettings,
+                  TaskSignaAccuracyReport, read_user_defaults)
 from .params import validate_marker_params
 
 
@@ -158,5 +159,6 @@ class Plugin(PluginBase):
         return [
             MountPoint('task/(?P<pk>[^/.]+)/detect', TaskSignaDetect.as_view()),
             MountPoint('task/(?P<pk>[^/.]+)/check/(?P<celery_task_id>.+)', TaskSignaCheck.as_view()),
+            MountPoint('task/(?P<pk>[^/.]+)/accuracy_report$', TaskSignaAccuracyReport.as_view()),
             MountPoint('settings$', SignaSettings.as_view()),
         ]

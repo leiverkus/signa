@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-25
+
+Georeferencing-accuracy QC: check points + an accuracy report.
+
+### Added
+- **Check points in the coordinate file.** A coordinate line may now end in the
+  word `check` (`id easting northing elevation check`) to hold that GCP out as an
+  **independent check point**: it is excluded from the georeferencing solve, so the
+  **Effigies** node can report an honest, held-out check-point RMSE (the standard
+  survey-accuracy metric). Without the token a point is a normal control GCP
+  (backward compatible). `gcp_detect.py` appends the ODM `check` token to those
+  lines; the detection summary lists the flagged ids.
+- **Accuracy verification report** (new section on the *Signa* page +
+  `GET task/<pk>/accuracy_report`). After a task finishes on the Effigies node,
+  Signa reads `odm_report/georef_transform.json` and presents the **control GCP
+  fit** and, when check points were flagged, the **independent check-point RMSE**
+  (3D + horizontal/vertical, in cm), the georef source, CRS and a plain-language
+  verdict — red beyond a tunable **5 cm** check bound (`WARN_CHECK_RMS_M`). Without
+  a check point it clearly states the control fit is **not** an independent
+  accuracy. `accuracy.py` (`build_accuracy_report`, unit-tested) +
+  `TaskSignaAccuracyReport` + report UI. Mirrors the Mensura scale report.
+
+### Notes
+- The independent metric requires the **Effigies** node (it writes
+  `georef_transform.json` with split control/check residuals); flagging ≥1 check
+  point makes its default `auto` mode run the constrained bundle adjustment that
+  produces the held-out CP-RMSE. With a non-Effigies node the report cleanly
+  reports "not available". **No `signa-core` change.**
+
 ## [1.6.2] - 2026-06-25
 
 ### Fixed
