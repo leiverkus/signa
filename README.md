@@ -299,7 +299,12 @@ See [CHANGELOG.md](CHANGELOG.md). The plugin follows
 
 ## License
 
-[GNU Affero General Public License v3.0 or later](LICENSE) © 2026 Patrick Leiverkus
+The WebODM plugin is licensed under the
+[GNU Affero General Public License v3.0 or later](LICENSE) © 2026 Patrick Leiverkus.
+
+The reusable detection core in [`signa-core/`](signa-core/) is licensed
+**MIT** — a GUI-free OpenCV detection library shared with other consumers (e.g.
+Mensura). This split (permissive core + AGPL plugin) mirrors the Itinera pattern.
 
 ## References
 
