@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "signa-core"
-version = "0.1.0"
-description = "Reusable, GUI-free ArUco marker detection core for the Signa/Evidentia pipeline (OpenCV)."
+version = "0.2.0"
+description = "Reusable, GUI-free ArUco marker detection + print-ready marker-sheet rendering for the Signa/Evidentia pipeline (OpenCV)."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -25,6 +25,11 @@ dependencies = [
     "numpy>=1.24",
     "opencv-contrib-python-headless>=4.7",
 ]
+
+# Pillow is optional: marker-sheet labels use it for a nicer typeface, with an
+# OpenCV/Hershey fallback when it is absent (see signa_core.markers.draw_labels).
+[project.optional-dependencies]
+labels = ["pillow>=9"]
 
 [project.urls]
 Repository = "https://github.com/leiverkus/signa"
