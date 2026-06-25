@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-06-25
+
+### Fixed
+- **Plugin would fail to load in WebODM** (same defect found and fixed in
+  Mensura). `params.py`/`plugin.py` imported `signa_core` at **module load**, but
+  WebODM installs a plugin's `requirements.txt` only from
+  `PluginBase.check_requirements()` — which runs *after* the module imports — so
+  the import failed before the deps could be installed (chicken-and-egg), the
+  plugin never instantiated, and its directory lingered, blocking re-upload. Now
+  all `signa_core` imports are lazy: the settings form uses a callable for
+  `choices`, the views/`params.py` functions import inside the body, `params.py`
+  re-exports the shared tables via a module `__getattr__`, and `signa/__init__.py`
+  adds the plugin's `site-packages` to `sys.path`.
+- **`requirements.txt` is now comment-free** and requires **`signa-core>=0.2.1`**
+  (which lowered `requires-python` to `>=3.9` so it installs in WebODM's Python
+  3.9; `0.2.0` was pinned `>=3.10`). WebODM's `parse_requirements` treats `#`
+  comment lines as package names, so the previous commented file never verified
+  as installed and WebODM re-ran the install every boot.
+
 ## [1.6.0] - 2026-06-25
 
 ### Changed

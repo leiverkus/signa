@@ -10,15 +10,27 @@ from django.utils.translation import gettext as _, gettext_lazy as _l
 from django import forms
 
 from .api import TaskSignaDetect, TaskSignaCheck, SignaSettings, read_user_defaults
-from .params import DICT_CHOICES, validate_marker_params
+from .params import validate_marker_params
+
+
+# signa_core is imported LAZILY (inside this helper / the views / the worker),
+# never at module load: WebODM installs it into the plugin's site-packages only
+# AFTER the module imports cleanly and register() -> check_requirements() runs. A
+# module-level `from signa_core import …` would fail on a fresh upload, the plugin
+# would never instantiate, and its dir would linger blocking re-upload.
+# signa/__init__.py adds the site-packages dir to sys.path so this resolves.
+def _dict_choices():
+    from signa_core import DICT_CHOICES
+    return DICT_CHOICES
 
 
 # Field labels/help_texts are evaluated at class-definition (module import)
 # time, so they must be lazy — plain gettext would freeze them in whatever
-# language was active when the module loaded.
+# language was active when the module loaded. choices is a callable for the same
+# reason (DICT_CHOICES is fetched lazily, at form bind/render time).
 class SignaSettingsForm(forms.Form):
     epsg = forms.IntegerField(label=_l("EPSG (target CRS)"), min_value=1024, max_value=999999)
-    dict_id = forms.ChoiceField(label=_l("ArUco dictionary"), choices=DICT_CHOICES)
+    dict_id = forms.ChoiceField(label=_l("ArUco dictionary"), choices=_dict_choices)
     minrate = forms.FloatField(
         label=_l("minrate"), min_value=0.005, max_value=1.0,
         help_text=_l("Minimum relative marker size. Lower it step by step (0.01 → 0.008 → 0.005) if markers are missed — never below 0.005. Markers should be at least 20×20 px in the image."))
@@ -76,7 +88,7 @@ class Plugin(PluginBase):
             return render(request, self.template_path("app.html"), {
                 'title': 'Signa',
                 'defaults': read_user_defaults(self.get_user_data_store(request.user)),
-                'dict_choices': DICT_CHOICES,
+                'dict_choices': _dict_choices(),
             })
 
         @login_required
@@ -98,7 +110,7 @@ class Plugin(PluginBase):
                     # validation of the defaults form.
                     return render(request, self.template_path("settings.html"),
                                   {'title': 'Signa Settings', 'form': form,
-                                   'dict_choices': DICT_CHOICES,
+                                   'dict_choices': _dict_choices(),
                                    'defaults': read_user_defaults(ds)})
 
             d = read_user_defaults(ds)
@@ -108,7 +120,7 @@ class Plugin(PluginBase):
             })
             return render(request, self.template_path("settings.html"),
                           {'title': 'Signa Settings', 'form': form,
-                           'dict_choices': DICT_CHOICES, 'defaults': d})
+                           'dict_choices': _dict_choices(), 'defaults': d})
 
         @login_required
         def marker_pdf_view(request):

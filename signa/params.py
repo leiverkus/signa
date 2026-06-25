@@ -5,28 +5,31 @@ without a running WebODM. Returns plain English error strings; the API view
 surfaces them to the client as JSON.
 """
 
-# The ArUco dictionaries the plugin offers come from signa-core — the single
-# source of truth shared with the detection layer and other consumers (e.g.
-# Mensura). Re-exported here so the settings form, UI dropdowns and API
-# validation can never drift from the detector. signa-core has no Django and no
-# cv2 import at module level, so params.py stays Django-free and cv2-free.
-from signa_core import DICT_CHOICES, VALID_DICTS  # noqa: F401  (re-exported)
-
-# Marker-sheet tables also live in signa-core (shared with Mensura's scale
-# markers), so the settings form, UI dropdowns, validation and the renderer can
-# never drift. signa-core imports no Django and no cv2 at module level, so
-# params.py stays Django-free and cv2-free.
-from signa_core import (  # noqa: F401  (re-exported)
-    DICT_CAPACITY,
-    MARKER_AIDS,
-    MAX_MARKER_PAGES,
-    PAGE_SIZES_MM,
-)
+# The ArUco dictionaries and marker-sheet tables come from signa-core — the
+# single source of truth shared with the detection layer and Mensura. They are
+# imported LAZILY inside the functions below (never at module load): WebODM
+# installs signa-core into the plugin's site-packages only after this module
+# imports cleanly and register() runs check_requirements(), so a module-level
+# `from signa_core import …` would fail on a fresh upload and the plugin would
+# never load. signa/__init__.py adds the site-packages dir to sys.path so the
+# lazy imports resolve once installed.
 
 # Hard floor for minrate. The UI/docs say "never below 0.005"; below it the
 # detector accepts tiny perimeters and produces a flood of false positives, so
 # the API enforces the same limit the settings form and help texts state.
 MIN_MINRATE = 0.005
+
+
+def __getattr__(name):
+    """Lazily re-export signa-core's shared tables as module attributes, so
+    ``params.DICT_CHOICES`` etc. work without importing signa_core at module
+    load. (Bare references inside the functions use explicit imports — module
+    __getattr__ is not consulted for those.)"""
+    if name in ("DICT_CHOICES", "VALID_DICTS", "DICT_CAPACITY", "MARKER_AIDS",
+                "MAX_MARKER_PAGES", "PAGE_SIZES_MM"):
+        import signa_core
+        return getattr(signa_core, name)
+    raise AttributeError("module {!r} has no attribute {!r}".format(__name__, name))
 
 
 def validate_params(data):
@@ -36,6 +39,7 @@ def validate_params(data):
         ``epsg``, ``dict``, ``minrate``, ``ignore``, ``adjust``.
     :returns: ``(params_dict, None)`` on success, or ``(None, error_message)``.
     """
+    from signa_core import VALID_DICTS
     try:
         epsg = int(data.get('epsg'))
     except (TypeError, ValueError):
@@ -74,6 +78,8 @@ def validate_params(data):
 
 def validate_marker_params(data):
     """Validate marker-sheet parameters (same contract as validate_params)."""
+    from signa_core import (
+        VALID_DICTS, DICT_CAPACITY, MARKER_AIDS, MAX_MARKER_PAGES, PAGE_SIZES_MM)
     try:
         dict_id = int(data.get('dict', 1))
     except (TypeError, ValueError):

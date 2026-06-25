@@ -15,7 +15,7 @@ authors:
     email: patrick.leiverkus@uni-oldenburg.de
     affiliation: "Carl von Ossietzky Universität Oldenburg"
     orcid: "https://orcid.org/0009-0006-2308-8297"
-version: "1.6.0"
+version: "1.6.1"
 date-released: "2026-06-25"
 license: AGPL-3.0-or-later
 repository-code: "https://github.com/leiverkus/signa"
